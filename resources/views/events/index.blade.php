@@ -54,30 +54,43 @@
                 @endif
             </div>
         @else
-            <div class="table-scroll">
-                <table>
-                    <thead>
-                        <tr>
-                            <th scope="col">Received</th>
-                            <th scope="col">Source</th>
-                            <th scope="col">Type</th>
-                            <th scope="col">Provider event id</th>
-                            <th scope="col">Event</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($events as $event)
+            @error('event_ids')<p class="error">{{ $message }}</p>@enderror
+            <form method="POST" action="{{ url('/events/replay') }}">
+                @csrf
+                <div class="actions section-gap">
+                    <button type="submit" class="btn btn-primary">Replay selected</button>
+                    <span class="small muted">Select events below, then replay up to 100 at once.</span>
+                </div>
+                <div class="table-scroll">
+                    <table>
+                        <thead>
                             <tr>
-                                <td class="muted small">{{ $event->received_at?->format('Y-m-d H:i:s') }}</td>
-                                <td>{{ $event->source?->name ?? '—' }}</td>
-                                <td class="truncate" title="{{ $event->event_type }}">{{ $event->event_type ?? '—' }}</td>
-                                <td class="mono truncate" title="{{ $event->provider_event_id }}">{{ $event->provider_event_id ?? '—' }}</td>
-                                <td class="mono"><a href="{{ url('/events/'.$event->id) }}">{{ Str::limit($event->id, 12, '…') }}</a></td>
+                                <th scope="col"><span class="small muted">Select</span></th>
+                                <th scope="col">Received</th>
+                                <th scope="col">Source</th>
+                                <th scope="col">Type</th>
+                                <th scope="col">Provider event id</th>
+                                <th scope="col">Event</th>
                             </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody>
+                            @foreach ($events as $event)
+                                <tr>
+                                    <td>
+                                        <input type="checkbox" name="event_ids[]" value="{{ $event->id }}"
+                                               aria-label="Select event {{ $event->id }}">
+                                    </td>
+                                    <td class="muted small">{{ $event->received_at?->format('Y-m-d H:i:s') }}</td>
+                                    <td>{{ $event->source?->name ?? '—' }}</td>
+                                    <td class="truncate" title="{{ $event->event_type }}">{{ $event->event_type ?? '—' }}</td>
+                                    <td class="mono truncate" title="{{ $event->provider_event_id }}">{{ $event->provider_event_id ?? '—' }}</td>
+                                    <td class="mono"><a href="{{ url('/events/'.$event->id) }}">{{ Str::limit($event->id, 12, '…') }}</a></td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </form>
             @include('partials.pagination', ['paginator' => $events])
         @endif
     </div>

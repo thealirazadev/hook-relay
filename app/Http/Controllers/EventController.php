@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\BulkReplayRequest;
 use App\Models\Source;
 use App\Models\WebhookEvent;
 use Carbon\CarbonInterface;
@@ -71,6 +72,25 @@ class EventController extends Controller
             : 'Replayed to '.$deliveries->count().' '.Str::plural('destination', $deliveries->count()).'.';
 
         return redirect('/events/'.$event->id)->with('status', $message);
+    }
+
+    public function bulkReplay(BulkReplayRequest $request): RedirectResponse
+    {
+        $events = WebhookEvent::whereIn('id', $request->validated()['event_ids'])->get();
+
+        $total = $events->sum(fn (WebhookEvent $event) => $event->createDeliveries()->count());
+
+        Log::info('event.replayed', [
+            'events' => $events->count(),
+            'deliveries' => $total,
+            'bulk' => true,
+        ]);
+
+        return redirect('/events')->with(
+            'status',
+            "Replayed {$events->count()} ".Str::plural('event', $events->count()).
+            ", creating {$total} ".Str::plural('delivery', $total).'.'
+        );
     }
 
     private function parseDate(?string $value): ?CarbonInterface
