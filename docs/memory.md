@@ -23,10 +23,19 @@ work; log every non-obvious decision with its reason. Keep entries short and dat
   a byte-identical body; a dead port produced a captured connection error and dead-lettered after
   the cap; requeue recovered it to delivered with the prior attempt rows preserved.
 
-## In progress
+- 2026-07-18 — Phase 3 complete. Dashboard home with status counts, events index (combinable
+  filters + provider-id search) and detail, deliveries index with filters, single + bulk replay
+  (max 100, same event ULID reused, no duplicate event rows), retention pruning via `Prunable` +
+  daily `model:prune` (cascades deliveries/attempts, skips events with non-terminal deliveries),
+  per-source ingest throttle (60/min per key, 429 `rate_limited` envelope), branded 404/419/500
+  pages, and a finalized README. 138 tests pass, Pint clean. Verified live: every browse page
+  loads, a replay flows through the real worker reusing the same `X-Relay-Event-Id`, and prune
+  removes terminal events. Logs show only the documented event keys, zero ERROR lines.
 
-- Phase 3 next — dashboard browsing/filters, single + bulk replay, retention pruning, ingest
-  throttle, README.
+## Project status
+
+- v1 complete: all three phases implemented, tested (138 passing), and verified live. Remaining
+  work is deployment (see docs/launch-checklist.md), which needs a target environment.
 
 ## Decisions log
 
@@ -70,3 +79,10 @@ work; log every non-obvious decision with its reason. Keep entries short and dat
 - 2026-07-18 — Fan-out and requeue live on the models (`WebhookEvent::createDeliveries()`,
   `Delivery::requeue()`) so ingest, replay, and DLQ requeue share one delivery-creation path, per
   rules.md; no separate manager class was introduced.
+- 2026-07-18 — Dashboard filter params are sanitized inline (integer casts, defensive Carbon date
+  parsing, parameter-bound LIKE search) and output-escaped, rather than validated via a FormRequest,
+  because FormRequest validation on GET filters redirects and can loop; nonsense values yield an
+  empty state instead of an error, matching the phase checklist.
+- 2026-07-18 — Ingest throttle fixed at 60 requests/minute per ingest key (not env-configurable,
+  per the YAGNI rule limiting config to the four documented values); adjust the limit in
+  AppServiceProvider if a deployment needs a different ceiling.
