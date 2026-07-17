@@ -24,6 +24,15 @@ class Delivery extends Model
 
     public const STATUS_DEAD = 'dead';
 
+    /** All delivery statuses, in lifecycle order. */
+    public const STATUSES = [
+        self::STATUS_PENDING,
+        self::STATUS_DELIVERING,
+        self::STATUS_DELIVERED,
+        self::STATUS_FAILED,
+        self::STATUS_DEAD,
+    ];
+
     /** States from which no further automatic transition happens. */
     public const TERMINAL = [self::STATUS_DELIVERED, self::STATUS_DEAD];
 
