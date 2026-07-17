@@ -24,13 +24,18 @@ class IngestController extends Controller
             return $this->error('unknown_source', 'No active source matches this ingest key.', 404);
         }
 
+        $body = $request->getContent();
+
+        if (strlen($body) > config('hook_relay.max_body_kb') * 1024) {
+            return $this->error('payload_too_large', 'The request body exceeds the size limit.', 413);
+        }
+
         $provider = $this->providers->for($source->provider);
 
         if (! $provider->verify($request, $source->signing_secret)) {
             return $this->error('invalid_signature', 'The request signature could not be verified.', 401);
         }
 
-        $body = $request->getContent();
         $providerEventId = $provider->eventId($request);
         $dedupeKey = $providerEventId ?? 'sha256:'.hash('sha256', $body);
 
