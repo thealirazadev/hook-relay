@@ -5,6 +5,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\DestinationController;
 use App\Http\Controllers\DlqController;
+use App\Http\Controllers\EventController;
 use App\Http\Controllers\SourceController;
 use Illuminate\Support\Facades\Route;
 
@@ -20,6 +21,9 @@ Route::middleware('auth')->group(function () {
 
     Route::resource('sources', SourceController::class)->except(['show']);
     Route::resource('destinations', DestinationController::class)->except(['show']);
+
+    Route::get('/events', [EventController::class, 'index'])->name('events.index');
+    Route::get('/events/{event}', [EventController::class, 'show'])->name('events.show');
 
     Route::get('/deliveries/{delivery}', [DeliveryController::class, 'show'])->name('deliveries.show');
 
