@@ -15,9 +15,18 @@ work; log every non-obvious decision with its reason. Keep entries short and dat
   real server: guarded redirect, login, source create, ingest 200/duplicate/401/404/405 with the
   JSON envelopes and one event row for a double-send.
 
+- 2026-07-18 — Phase 2 complete. Destinations CRUD, per-source routing (pivot `source_destination`),
+  deliveries + delivery_attempts, ingest fan-out to pending deliveries, the `DeliverEvent` job
+  (response capture, exponential backoff + jitter, dead-lettering, idempotency headers), the DLQ
+  view with single + bulk requeue, and delivery detail. 104 tests pass, Pint clean. Verified live
+  with a real queue worker: delivery to an echo server carried the correct `X-Relay-*` headers and
+  a byte-identical body; a dead port produced a captured connection error and dead-lettered after
+  the cap; requeue recovered it to delivered with the prior attempt rows preserved.
+
 ## In progress
 
-- Phase 2 next — destinations, routing, at-least-once delivery with backoff + jitter, DLQ.
+- Phase 3 next — dashboard browsing/filters, single + bulk replay, retention pruning, ingest
+  throttle, README.
 
 ## Decisions log
 
@@ -53,3 +62,11 @@ work; log every non-obvious decision with its reason. Keep entries short and dat
 - 2026-07-18 — Local run recipe: `php -S 127.0.0.1:PORT -t public public/index.php` via the `php`
   wrapper (which scopes LD_LIBRARY_PATH to PHP). `php artisan serve` does not work here because
   its spawned `php -S` grandchild loses LD_LIBRARY_PATH and cannot load the bundled libtidy.
+- 2026-07-18 — Delivery retry uses the framework budget via `$this->attempts()` (fresh per job, so
+  a requeue gets a fresh budget) with `tries` snapshotted from `delivery.max_attempts`; the job
+  releases with the jittered backoff delay, marks `dead` when `attempts() >= max_attempts`, and
+  keeps `failed()` as a safety net. Tested with `withFakeQueueInteractions()` so the cap and dead
+  transition are exercised without a real queue or wall-clock.
+- 2026-07-18 — Fan-out and requeue live on the models (`WebhookEvent::createDeliveries()`,
+  `Delivery::requeue()`) so ingest, replay, and DLQ requeue share one delivery-creation path, per
+  rules.md; no separate manager class was introduced.
