@@ -25,6 +25,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/events', [EventController::class, 'index'])->name('events.index');
     Route::get('/events/{event}', [EventController::class, 'show'])->name('events.show');
 
+    Route::get('/deliveries', [DeliveryController::class, 'index'])->name('deliveries.index');
     Route::get('/deliveries/{delivery}', [DeliveryController::class, 'show'])->name('deliveries.show');
 
     Route::get('/dlq', [DlqController::class, 'index'])->name('dlq.index');
