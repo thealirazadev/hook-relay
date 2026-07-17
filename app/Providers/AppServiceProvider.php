@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use Illuminate\Database\Events\ModelsPruned;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +22,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Event::listen(ModelsPruned::class, function (ModelsPruned $event) {
+            Log::info('prune.completed', [
+                'model' => $event->model,
+                'count' => $event->count,
+            ]);
+        });
     }
 }
