@@ -18,9 +18,9 @@ it('lists only dead deliveries', function () {
 
     $this->get('/dlq')
         ->assertOk()
-        ->assertSee(substr($dead->id, 0, 12))
-        ->assertDontSee(substr($delivered->id, 0, 12))
-        ->assertDontSee(substr($pending->id, 0, 12));
+        ->assertSee('/deliveries/'.$dead->id)
+        ->assertDontSee('/deliveries/'.$delivered->id)
+        ->assertDontSee('/deliveries/'.$pending->id);
 });
 
 it('shows an empty state when there are no dead deliveries', function () {
