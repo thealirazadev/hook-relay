@@ -2,6 +2,7 @@
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 pest()->extend(TestCase::class)
@@ -45,4 +46,26 @@ function shopifySignature(string $body, string $secret): string
 function genericSignature(string $body, string $secret): string
 {
     return 'sha256='.hash_hmac('sha256', $body, $secret);
+}
+
+/**
+ * POST a raw body to the ingest endpoint with the given headers.
+ *
+ * @param  array<string, string>  $headers
+ */
+function postIngest(string $key, string $body, array $headers = []): TestResponse
+{
+    $server = [];
+
+    foreach ($headers as $name => $value) {
+        if (strtolower($name) === 'content-type') {
+            $server['CONTENT_TYPE'] = $value;
+
+            continue;
+        }
+
+        $server['HTTP_'.strtoupper(str_replace('-', '_', $name))] = $value;
+    }
+
+    return test()->call('POST', "/ingest/{$key}", [], [], [], $server, $body);
 }
