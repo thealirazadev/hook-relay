@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
@@ -15,7 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
         then: function () {
-            Route::group([], base_path('routes/ingest.php'));
+            Route::middleware('throttle:ingest')->group(base_path('routes/ingest.php'));
         },
     )
     ->withMiddleware(function (Middleware $middleware) {
@@ -28,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             [$status, $code, $message] = match (true) {
+                $e instanceof ThrottleRequestsException => [429, 'rate_limited', 'Too many requests for this ingest key.'],
                 $e instanceof MethodNotAllowedHttpException => [405, 'method_not_allowed', 'Only POST is allowed on this endpoint.'],
                 $e instanceof NotFoundHttpException => [404, 'unknown_source', 'No active source matches this ingest key.'],
                 default => [500, 'server_error', 'An unexpected error occurred.'],
