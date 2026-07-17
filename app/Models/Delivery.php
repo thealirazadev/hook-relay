@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use App\Jobs\DeliverEvent;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Log;
 
 class Delivery extends Model
 {
@@ -45,6 +47,23 @@ class Delivery extends Model
     public function isTerminal(): bool
     {
         return in_array($this->status, self::TERMINAL, true);
+    }
+
+    /**
+     * Return a delivery to the queue with a fresh attempt budget. Lifetime
+     * attempt_count and all prior attempt rows are preserved for the audit trail.
+     */
+    public function requeue(): void
+    {
+        $this->forceFill([
+            'status' => self::STATUS_PENDING,
+            'next_attempt_at' => null,
+            'max_attempts' => config('hook_relay.delivery_max_attempts'),
+        ])->save();
+
+        DeliverEvent::dispatch($this);
+
+        Log::info('delivery.requeued', ['delivery_id' => $this->id]);
     }
 
     public function event(): BelongsTo
