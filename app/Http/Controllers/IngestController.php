@@ -8,6 +8,7 @@ use App\Support\Providers\ProviderResolver;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class IngestController extends Controller
 {
@@ -21,18 +22,24 @@ class IngestController extends Controller
         $source = Source::where('ingest_key', $ingestKey)->where('active', true)->first();
 
         if ($source === null) {
+            Log::warning('ingest.unknown_source', ['ingest_key' => $ingestKey]);
+
             return $this->error('unknown_source', 'No active source matches this ingest key.', 404);
         }
 
         $body = $request->getContent();
 
         if (strlen($body) > config('hook_relay.max_body_kb') * 1024) {
+            Log::warning('ingest.payload_too_large', ['source_id' => $source->id, 'bytes' => strlen($body)]);
+
             return $this->error('payload_too_large', 'The request body exceeds the size limit.', 413);
         }
 
         $provider = $this->providers->for($source->provider);
 
         if (! $provider->verify($request, $source->signing_secret)) {
+            Log::warning('ingest.signature_failed', ['source_id' => $source->id, 'reason' => 'hmac_mismatch']);
+
             return $this->error('invalid_signature', 'The request signature could not be verified.', 401);
         }
 
@@ -40,6 +47,8 @@ class IngestController extends Controller
         $dedupeKey = $providerEventId ?? 'sha256:'.hash('sha256', $body);
 
         if ($existing = $source->events()->where('dedupe_key', $dedupeKey)->first()) {
+            Log::info('ingest.duplicate', ['source_id' => $source->id, 'event_id' => $existing->id]);
+
             return $this->accepted($existing->id, true);
         }
 
@@ -56,11 +65,19 @@ class IngestController extends Controller
         } catch (QueryException $e) {
             // A concurrent identical POST won the unique (source_id, dedupe_key) race.
             if ($existing = $source->events()->where('dedupe_key', $dedupeKey)->first()) {
+                Log::info('ingest.duplicate', ['source_id' => $source->id, 'event_id' => $existing->id]);
+
                 return $this->accepted($existing->id, true);
             }
 
             throw $e;
         }
+
+        Log::info('ingest.accepted', [
+            'source_id' => $source->id,
+            'event_id' => $event->id,
+            'event_type' => $event->event_type,
+        ]);
 
         return $this->accepted($event->id, false);
     }
