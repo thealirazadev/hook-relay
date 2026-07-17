@@ -1,9 +1,15 @@
 <?php
 
+use App\Jobs\DeliverEvent;
 use App\Models\Delivery;
 use App\Models\Destination;
 use App\Models\Source;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Testing\TestResponse;
+
+beforeEach(function () {
+    Queue::fake();
+});
 
 function ingestGeneric(Source $source, string $body, array $extra = []): TestResponse
 {
@@ -23,6 +29,7 @@ it('creates one pending delivery per active routed destination', function () {
     expect(Delivery::count())->toBe(2);
     expect(Delivery::where('status', Delivery::STATUS_PENDING)->count())->toBe(2);
     expect(Delivery::pluck('destination_id')->all())->toEqualCanonicalizing([$a->id, $b->id]);
+    Queue::assertPushed(DeliverEvent::class, 2);
 });
 
 it('excludes inactive and unrouted destinations', function () {

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Jobs\DeliverEvent;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -61,11 +62,17 @@ class WebhookEvent extends Model
         return $source->destinations()
             ->where('destinations.active', true)
             ->get()
-            ->map(fn (Destination $destination) => $this->deliveries()->create([
-                'destination_id' => $destination->id,
-                'status' => Delivery::STATUS_PENDING,
-                'attempt_count' => 0,
-                'max_attempts' => $maxAttempts,
-            ]));
+            ->map(function (Destination $destination) use ($maxAttempts) {
+                $delivery = $this->deliveries()->create([
+                    'destination_id' => $destination->id,
+                    'status' => Delivery::STATUS_PENDING,
+                    'attempt_count' => 0,
+                    'max_attempts' => $maxAttempts,
+                ]);
+
+                DeliverEvent::dispatch($delivery);
+
+                return $delivery;
+            });
     }
 }
