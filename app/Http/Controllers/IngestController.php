@@ -73,6 +73,8 @@ class IngestController extends Controller
             throw $e;
         }
 
+        $event->createDeliveries();
+
         Log::info('ingest.accepted', [
             'source_id' => $source->id,
             'event_id' => $event->id,

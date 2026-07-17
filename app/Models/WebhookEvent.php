@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 class WebhookEvent extends Model
 {
@@ -39,5 +40,32 @@ class WebhookEvent extends Model
     public function deliveries(): HasMany
     {
         return $this->hasMany(Delivery::class);
+    }
+
+    /**
+     * Fan the event out to one pending delivery per active routed destination.
+     * Shared by the ingest path and by replay.
+     *
+     * @return Collection<int, Delivery>
+     */
+    public function createDeliveries(): Collection
+    {
+        $source = $this->source()->withTrashed()->first();
+
+        if ($source === null) {
+            return collect();
+        }
+
+        $maxAttempts = config('hook_relay.delivery_max_attempts');
+
+        return $source->destinations()
+            ->where('destinations.active', true)
+            ->get()
+            ->map(fn (Destination $destination) => $this->deliveries()->create([
+                'destination_id' => $destination->id,
+                'status' => Delivery::STATUS_PENDING,
+                'attempt_count' => 0,
+                'max_attempts' => $maxAttempts,
+            ]));
     }
 }
