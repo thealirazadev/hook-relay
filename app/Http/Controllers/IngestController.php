@@ -1,0 +1,76 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Source;
+use App\Support\HeaderFilter;
+use App\Support\Providers\ProviderResolver;
+use Illuminate\Database\QueryException;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class IngestController extends Controller
+{
+    public function __construct(
+        private readonly ProviderResolver $providers,
+        private readonly HeaderFilter $headerFilter,
+    ) {}
+
+    public function __invoke(Request $request, string $ingestKey): JsonResponse
+    {
+        $source = Source::where('ingest_key', $ingestKey)->where('active', true)->first();
+
+        if ($source === null) {
+            return $this->error('unknown_source', 'No active source matches this ingest key.', 404);
+        }
+
+        $provider = $this->providers->for($source->provider);
+
+        if (! $provider->verify($request, $source->signing_secret)) {
+            return $this->error('invalid_signature', 'The request signature could not be verified.', 401);
+        }
+
+        $body = $request->getContent();
+        $providerEventId = $provider->eventId($request);
+        $dedupeKey = $providerEventId ?? 'sha256:'.hash('sha256', $body);
+
+        if ($existing = $source->events()->where('dedupe_key', $dedupeKey)->first()) {
+            return $this->accepted($existing->id, true);
+        }
+
+        try {
+            $event = $source->events()->create([
+                'provider_event_id' => $providerEventId,
+                'dedupe_key' => $dedupeKey,
+                'event_type' => $provider->eventType($request),
+                'headers' => $this->headerFilter->filter($request->headers->all()),
+                'payload' => $body,
+                'content_type' => $request->header('Content-Type', 'application/json'),
+                'received_at' => now(),
+            ]);
+        } catch (QueryException $e) {
+            // A concurrent identical POST won the unique (source_id, dedupe_key) race.
+            if ($existing = $source->events()->where('dedupe_key', $dedupeKey)->first()) {
+                return $this->accepted($existing->id, true);
+            }
+
+            throw $e;
+        }
+
+        return $this->accepted($event->id, false);
+    }
+
+    private function accepted(string $eventId, bool $duplicate): JsonResponse
+    {
+        return response()->json([
+            'data' => ['event_id' => $eventId, 'duplicate' => $duplicate],
+        ]);
+    }
+
+    private function error(string $code, string $message, int $status): JsonResponse
+    {
+        return response()->json([
+            'error' => ['code' => $code, 'message' => $message],
+        ], $status);
+    }
+}
