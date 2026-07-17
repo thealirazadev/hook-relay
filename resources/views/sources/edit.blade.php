@@ -42,6 +42,24 @@
                 </label>
             </div>
 
+            <fieldset>
+                <legend>Routed destinations</legend>
+                @if ($destinations->isEmpty())
+                    <p class="help">No destinations yet. <a href="{{ url('/destinations/create') }}">Create one</a> to route events.</p>
+                @else
+                    @php($selected = collect(old('destination_ids', $routedIds))->map(fn ($id) => (int) $id))
+                    @foreach ($destinations as $destination)
+                        <label class="check">
+                            <input type="checkbox" name="destination_ids[]" value="{{ $destination->id }}"
+                                   {{ $selected->contains($destination->id) ? 'checked' : '' }}>
+                            {{ $destination->name }}
+                            <span class="small muted mono">{{ $destination->url }}</span>
+                            @unless ($destination->active)<span class="small muted">(inactive)</span>@endunless
+                        </label>
+                    @endforeach
+                @endif
+            </fieldset>
+
             <div class="actions">
                 <button type="submit" class="btn btn-primary">Save changes</button>
                 <a href="{{ url('/sources') }}" class="btn btn-secondary">Cancel</a>

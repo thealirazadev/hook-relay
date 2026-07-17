@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreSourceRequest;
 use App\Http\Requests\UpdateSourceRequest;
+use App\Models\Destination;
 use App\Models\Source;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -32,7 +33,11 @@ class SourceController extends Controller
 
     public function edit(Source $source): View
     {
-        return view('sources.edit', ['source' => $source]);
+        return view('sources.edit', [
+            'source' => $source,
+            'destinations' => Destination::orderBy('name')->get(),
+            'routedIds' => $source->destinations()->pluck('destinations.id')->all(),
+        ]);
     }
 
     public function update(UpdateSourceRequest $request, Source $source): RedirectResponse
@@ -44,6 +49,7 @@ class SourceController extends Controller
         }
 
         $source->update($data);
+        $source->destinations()->sync($request->input('destination_ids', []));
 
         return redirect('/sources')->with('status', "Source \"{$source->name}\" updated.");
     }

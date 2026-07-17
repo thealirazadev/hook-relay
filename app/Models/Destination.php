@@ -24,7 +24,7 @@ class Destination extends Model
 
     public function sources(): BelongsToMany
     {
-        return $this->belongsToMany(Source::class);
+        return $this->belongsToMany(Source::class, 'source_destination');
     }
 
     public function deliveries(): HasMany

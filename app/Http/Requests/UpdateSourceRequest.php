@@ -29,6 +29,8 @@ class UpdateSourceRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'signing_secret' => ['nullable', 'string', 'max:4096'],
             'active' => ['boolean'],
+            'destination_ids' => ['array'],
+            'destination_ids.*' => ['integer', 'exists:destinations,id'],
         ];
     }
 }

@@ -56,6 +56,6 @@ class Source extends Model
 
     public function destinations(): BelongsToMany
     {
-        return $this->belongsToMany(Destination::class);
+        return $this->belongsToMany(Destination::class, 'source_destination');
     }
 }
