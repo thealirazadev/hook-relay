@@ -5,8 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Source;
 use App\Models\WebhookEvent;
 use Carbon\CarbonInterface;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class EventController extends Controller
@@ -55,6 +58,19 @@ class EventController extends Controller
         $event->load(['source', 'deliveries.destination']);
 
         return view('events.show', ['event' => $event]);
+    }
+
+    public function replay(WebhookEvent $event): RedirectResponse
+    {
+        $deliveries = $event->createDeliveries();
+
+        Log::info('event.replayed', ['event_id' => $event->id, 'deliveries' => $deliveries->count()]);
+
+        $message = $deliveries->isEmpty()
+            ? 'Replayed, but the source has no active routed destinations, so no deliveries were created.'
+            : 'Replayed to '.$deliveries->count().' '.Str::plural('destination', $deliveries->count()).'.';
+
+        return redirect('/events/'.$event->id)->with('status', $message);
     }
 
     private function parseDate(?string $value): ?CarbonInterface

@@ -5,6 +5,10 @@
 @section('content')
     <div class="header-row">
         <h1>Event</h1>
+        <form method="POST" action="{{ url('/events/'.$event->id.'/replay') }}">
+            @csrf
+            <button type="submit" class="btn btn-primary">Replay event</button>
+        </form>
     </div>
 
     <div class="card">

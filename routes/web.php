@@ -23,6 +23,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('destinations', DestinationController::class)->except(['show']);
 
     Route::get('/events', [EventController::class, 'index'])->name('events.index');
+    Route::post('/events/{event}/replay', [EventController::class, 'replay'])->name('events.replay');
     Route::get('/events/{event}', [EventController::class, 'show'])->name('events.show');
 
     Route::get('/deliveries', [DeliveryController::class, 'index'])->name('deliveries.index');
