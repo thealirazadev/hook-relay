@@ -306,6 +306,36 @@ th.num {
     align-items: center;
 }
 
+/* Inline confirm (no JavaScript) */
+details.confirm {
+    display: inline-block;
+}
+
+details.confirm > summary {
+    list-style: none;
+    cursor: pointer;
+    display: inline-block;
+}
+
+details.confirm > summary::-webkit-details-marker {
+    display: none;
+}
+
+details.confirm[open] > summary {
+    display: none;
+}
+
+details.confirm .confirm-body {
+    display: inline-flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+details.confirm .confirm-body .small {
+    color: var(--text-muted);
+}
+
 /* Forms */
 form.stack {
     display: flex;
