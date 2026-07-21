@@ -2,7 +2,9 @@
 
 use App\Models\Source;
 use App\Models\WebhookEvent;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 it('accepts a correctly signed stripe webhook and stores one event', function () {
     $source = Source::factory()->provider('stripe')->create(['signing_secret' => 'whsec_x']);
@@ -181,6 +183,47 @@ it('rejects a payload over the size limit with 413', function () {
         ->assertJson(['error' => ['code' => 'payload_too_large']]);
 
     expect(WebhookEvent::count())->toBe(0);
+});
+
+it('returns 200 duplicate when a concurrent insert wins the unique race', function () {
+    $source = Source::factory()->provider('generic')->create(['signing_secret' => 'gen']);
+    $body = '{"a":1}';
+    $headers = ['X-Signature' => genericSignature($body, 'gen'), 'X-Event-Id' => 'race-1'];
+
+    // Simulate a competing request that commits the same (source_id, dedupe_key)
+    // between this request's duplicate pre-check and its own insert: plant the row
+    // from inside the "creating" hook so the real insert hits the unique violation
+    // and must fall through to the catch block's re-query.
+    $plantedId = (string) Str::ulid();
+    $armed = true;
+
+    WebhookEvent::creating(function () use (&$armed, $source, $plantedId) {
+        if (! $armed) {
+            return;
+        }
+        $armed = false;
+
+        DB::table('webhook_events')->insert([
+            'id' => $plantedId,
+            'source_id' => $source->id,
+            'provider_event_id' => 'race-1',
+            'dedupe_key' => 'race-1',
+            'event_type' => null,
+            'headers' => '{}',
+            'payload' => '{"a":1}',
+            'content_type' => 'application/json',
+            'received_at' => now(),
+            'created_at' => now(),
+        ]);
+    });
+
+    $response = postIngest($source->ingest_key, $body, $headers);
+
+    $armed = false;
+
+    $response->assertOk()->assertJson(['data' => ['duplicate' => true]]);
+    expect($response->json('data.event_id'))->toBe($plantedId);
+    expect(WebhookEvent::count())->toBe(1);
 });
 
 it('logs structured ingest events', function () {
