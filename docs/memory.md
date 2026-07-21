@@ -32,6 +32,12 @@ work; log every non-obvious decision with its reason. Keep entries short and dat
   loads, a replay flows through the real worker reusing the same `X-Relay-Event-Id`, and prune
   removes terminal events. Logs show only the documented event keys, zero ERROR lines.
 
+- 2026-07-22 — Repository housekeeping after publishing: added the MIT `LICENSE` at the root
+  (matching the `license` field already in composer.json) and `.github/workflows/ci.yml`, which
+  runs the same two commands the project passes locally — `./vendor/bin/pint --test` then
+  `php artisan test` — on PHP 8.2 for pushes and pull requests to `main`. No source or test
+  changes.
+
 ## Project status
 
 - v1 complete: all three phases implemented, tested (138 passing), and verified live. Remaining
