@@ -179,10 +179,11 @@ tests/
 
 ## Tech stack with rationale
 
-- **Laravel 11.x (PHP 8.2+)** — Routing, validation, Eloquent, queued jobs with retry/backoff
-  built in, scheduler for pruning, first-class testing (`Http::fake`, `Queue::fake`). Matches the
-  sibling `laravel-shortlink` project's stack and tooling. Exact versions are pinned at install
-  time and `composer.lock` is committed.
+- **Laravel 12.x (PHP 8.2+)** — Routing, validation, Eloquent, queued jobs with retry/backoff
+  built in, scheduler for pruning, first-class testing (`Http::fake`, `Queue::fake`). Exact
+  versions are pinned at install time and `composer.lock` is committed. Originally built on 11.x;
+  moved to 12.x because the security fixes for the framework advisories this app was exposed to
+  ship only on the 12.x line. The 11 → 12 upgrade required no application code changes.
 - **Database queue driver** — The queue is the heart of the product, and the `database` driver
   keeps the whole deployment a single PHP + database box. Trade-off: lower throughput and
   DB-polling overhead versus Redis; acceptable because a self-hosted relay handles hundreds of

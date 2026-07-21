@@ -11,7 +11,7 @@ browse, filter, inspect, and replay events and deliveries.
 
 ## Stack
 
-- PHP 8.2+ / Laravel 11.x
+- PHP 8.2+ / Laravel 12.x
 - SQLite (local dev) / MySQL 8.x (production)
 - Database queue driver (no Redis dependency)
 - Blade + one static CSS file for the dashboard (no Node toolchain)
