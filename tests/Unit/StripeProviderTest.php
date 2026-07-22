@@ -51,6 +51,26 @@ it('rejects a timestamp outside the tolerance', function () {
     expect($this->provider->verify($request, $this->secret))->toBeFalse();
 });
 
+it('rejects a header carrying a timestamp but no v1 signature', function () {
+    $request = makeRequest($this->body, ['Stripe-Signature' => 't='.time()]);
+
+    expect($this->provider->verify($request, $this->secret))->toBeFalse();
+});
+
+it('rejects a header carrying a v1 signature but no timestamp', function () {
+    $valid = hash_hmac('sha256', time().'.'.$this->body, $this->secret);
+    $request = makeRequest($this->body, ['Stripe-Signature' => 'v1='.$valid]);
+
+    expect($this->provider->verify($request, $this->secret))->toBeFalse();
+});
+
+it('rejects a non-numeric timestamp rather than coercing it', function () {
+    $valid = hash_hmac('sha256', time().'.'.$this->body, $this->secret);
+    $request = makeRequest($this->body, ['Stripe-Signature' => 't=abc,v1='.$valid]);
+
+    expect($this->provider->verify($request, $this->secret))->toBeFalse();
+});
+
 it('accepts when one of several v1 signatures matches', function () {
     $valid = hash_hmac('sha256', time().'.'.$this->body, $this->secret);
     $header = 't='.time().',v1=deadbeef,v1='.$valid;
@@ -71,4 +91,11 @@ it('returns null ids for a non-json body', function () {
 
     expect($this->provider->eventId($request))->toBeNull();
     expect($this->provider->eventType($request))->toBeNull();
+});
+
+it('returns a null event id when the json id is not scalar', function () {
+    $request = makeRequest('{"id":{"nested":1},"type":"charge.succeeded"}');
+
+    expect($this->provider->eventId($request))->toBeNull();
+    expect($this->provider->eventType($request))->toBe('charge.succeeded');
 });
