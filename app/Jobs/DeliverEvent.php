@@ -27,6 +27,10 @@ class DeliverEvent implements ShouldQueue
     public function __construct(public Delivery $delivery)
     {
         $this->tries = $delivery->max_attempts;
+
+        // Only dispatch to the queue after the surrounding DB transaction commits,
+        // so a worker never picks up a delivery whose rows are not yet persisted.
+        $this->afterCommit = true;
     }
 
     public function handle(): void

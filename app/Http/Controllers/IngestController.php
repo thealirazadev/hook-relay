@@ -8,6 +8,7 @@ use App\Support\Providers\ProviderResolver;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class IngestController extends Controller
@@ -52,36 +53,50 @@ class IngestController extends Controller
             return $this->accepted($existing->id, true);
         }
 
-        try {
-            $event = $source->events()->create([
-                'provider_event_id' => $providerEventId,
-                'dedupe_key' => $dedupeKey,
-                'event_type' => $provider->eventType($request),
-                'headers' => $this->headerFilter->filter($request->headers->all()),
-                'payload' => $body,
-                'content_type' => $request->header('Content-Type', 'application/json'),
-                'received_at' => now(),
-            ]);
-        } catch (QueryException $e) {
-            // A concurrent identical POST won the unique (source_id, dedupe_key) race.
-            if ($existing = $source->events()->where('dedupe_key', $dedupeKey)->first()) {
-                Log::info('ingest.duplicate', ['source_id' => $source->id, 'event_id' => $existing->id]);
+        // Persist the event and fan it out to deliveries atomically. If the
+        // fan-out fails, the event is rolled back too, so the provider's retry
+        // re-ingests it instead of short-circuiting on a stranded, delivery-less
+        // duplicate. Delivery jobs are dispatched only after this commits.
+        $result = DB::transaction(function () use ($source, $provider, $request, $providerEventId, $dedupeKey, $body) {
+            try {
+                $event = $source->events()->create([
+                    'provider_event_id' => $providerEventId,
+                    'dedupe_key' => $dedupeKey,
+                    'event_type' => $provider->eventType($request),
+                    'headers' => $this->headerFilter->filter($request->headers->all()),
+                    'payload' => $body,
+                    'content_type' => $request->header('Content-Type', 'application/json'),
+                    'received_at' => now(),
+                ]);
+            } catch (QueryException $e) {
+                // A concurrent identical POST won the unique (source_id, dedupe_key)
+                // race between the pre-check and this insert. The winner's row is
+                // already committed, so treat this request as a duplicate.
+                if ($existing = $source->events()->where('dedupe_key', $dedupeKey)->first()) {
+                    return ['event' => $existing, 'duplicate' => true];
+                }
 
-                return $this->accepted($existing->id, true);
+                throw $e;
             }
 
-            throw $e;
-        }
+            $event->createDeliveries();
 
-        $event->createDeliveries();
+            return ['event' => $event, 'duplicate' => false];
+        });
+
+        if ($result['duplicate']) {
+            Log::info('ingest.duplicate', ['source_id' => $source->id, 'event_id' => $result['event']->id]);
+
+            return $this->accepted($result['event']->id, true);
+        }
 
         Log::info('ingest.accepted', [
             'source_id' => $source->id,
-            'event_id' => $event->id,
-            'event_type' => $event->event_type,
+            'event_id' => $result['event']->id,
+            'event_type' => $result['event']->event_type,
         ]);
 
-        return $this->accepted($event->id, false);
+        return $this->accepted($result['event']->id, false);
     }
 
     private function accepted(string $eventId, bool $duplicate): JsonResponse
