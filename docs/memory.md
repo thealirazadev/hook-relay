@@ -38,6 +38,21 @@ work; log every non-obvious decision with its reason. Keep entries short and dat
   `php artisan test` — on PHP 8.2 for pushes and pull requests to `main`. No source or test
   changes.
 
+- 2026-07-23 — Added README screenshots. `database/seeders/DemoSeeder.php` seeds synthetic data
+  (three sources: Stripe/GitHub/Shopify; three `example.com` destinations with routing; eight
+  events with realistic types and provider ids; fourteen deliveries spanning pending, delivered,
+  delivered-after-retry, failed-and-retrying, and dead; 29 attempt rows including a dead delivery
+  with the full eight-attempt trail of 500/502/503 responses, a timeout, and a connection error).
+  Deliveries/attempts are written directly with fixed states, so nothing dispatches to the queue.
+  `scripts/capture-screenshots.mjs` drives Playwright (not a repo dependency) to shoot the events
+  browse, deliveries browse, a dead delivery's detail (attempt audit trail), and the dead-letter
+  queue into `docs/images/` at 1280-wide; PNGs are 44-151 KB. Referenced near the top of the README
+  with descriptive alt text plus a reproduction section. Genuine captures of the running app — no
+  application code changed. Same sandbox serving note as laravel-uptime: `php -S ... index.php`
+  routes static assets through the front controller (CSS 302s), so captures used
+  `php -S -t public <router>` where the router returns false for existing files; README documents
+  the normal `php artisan serve` path. pint clean, 139 tests pass, CI green.
+
 ## Project status
 
 - v1 complete: all three phases implemented, tested (138 passing), and verified live. Remaining
