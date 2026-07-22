@@ -16,8 +16,8 @@ class IngestController extends Controller
     /** Width of the dedupe_key column; a longer provider id is hashed to fit. */
     private const DEDUPE_KEY_MAX = 191;
 
-    /** Width of the provider_event_id column; the stored value is capped to fit. */
-    private const PROVIDER_EVENT_ID_MAX = 255;
+    /** Width of the string columns fed from request data; values are capped to fit. */
+    private const STRING_COLUMN_MAX = 255;
 
     public function __construct(
         private readonly ProviderResolver $providers,
@@ -66,14 +66,12 @@ class IngestController extends Controller
         $result = DB::transaction(function () use ($source, $provider, $request, $providerEventId, $dedupeKey, $body) {
             try {
                 $event = $source->events()->create([
-                    'provider_event_id' => $providerEventId === null
-                        ? null
-                        : mb_substr($providerEventId, 0, self::PROVIDER_EVENT_ID_MAX),
+                    'provider_event_id' => $this->cap($providerEventId),
                     'dedupe_key' => $dedupeKey,
-                    'event_type' => $provider->eventType($request),
+                    'event_type' => $this->cap($provider->eventType($request)),
                     'headers' => $this->headerFilter->filter($request->headers->all()),
                     'payload' => $body,
-                    'content_type' => $request->header('Content-Type', 'application/json'),
+                    'content_type' => $this->cap($request->header('Content-Type', 'application/json')),
                     'received_at' => now(),
                 ]);
             } catch (QueryException $e) {
@@ -124,6 +122,12 @@ class IngestController extends Controller
         }
 
         return $providerEventId;
+    }
+
+    /** Cap a request-derived string so it fits its storage column on strict MySQL. */
+    private function cap(?string $value): ?string
+    {
+        return $value === null ? null : mb_substr($value, 0, self::STRING_COLUMN_MAX);
     }
 
     private function accepted(string $eventId, bool $duplicate): JsonResponse

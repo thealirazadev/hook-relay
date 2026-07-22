@@ -180,6 +180,24 @@ it('bounds the dedupe key when a provider sends an over-length event id', functi
     expect(WebhookEvent::count())->toBe(1);
 });
 
+it('caps an over-length event type and content type instead of failing', function () {
+    $source = Source::factory()->provider('shopify')->create(['signing_secret' => 'shp']);
+    $body = '{"id":1}';
+    $longTopic = str_repeat('t', 300);
+    $longContentType = 'application/json; charset='.str_repeat('x', 300);
+
+    postIngest($source->ingest_key, $body, [
+        'X-Shopify-Hmac-Sha256' => shopifySignature($body, 'shp'),
+        'X-Shopify-Webhook-Id' => 'wh-cap',
+        'X-Shopify-Topic' => $longTopic,
+        'Content-Type' => $longContentType,
+    ])->assertOk();
+
+    $event = WebhookEvent::sole();
+    expect(mb_strlen($event->event_type))->toBeLessThanOrEqual(255);
+    expect(mb_strlen($event->content_type))->toBeLessThanOrEqual(255);
+});
+
 it('stores filtered headers without denylisted ones', function () {
     $source = Source::factory()->provider('generic')->create(['signing_secret' => 'gen']);
     $body = '{"a":1}';
