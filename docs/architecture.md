@@ -10,13 +10,13 @@ Ingest pipeline
         ├─ resolve Source by ingest_key      → unknown key: 404, nothing stored
         ├─ enforce payload size limit        → too large: 413, nothing stored
         ├─ verify signature (provider class) → invalid: 401, nothing stored, logged
-        ├─ derive dedupe key                 → provider event id, else sha256(body)
+        ├─ derive dedupe key                 → provider event id (hashed if over-long), else sha256(body)
         ├─ duplicate? (source_id+dedupe_key) → 200 {duplicate: true}, nothing new
-        └─ persist WebhookEvent (raw payload, filtered headers, event type)
+        └─ persist WebhookEvent + fan out to deliveries in one DB transaction
                 │
                 ▼
         create one Delivery per Destination routed to the Source (state: pending)
-        dispatch DeliverEvent job per delivery (database queue)
+        dispatch DeliverEvent job per delivery after commit (database queue)
                 │
                 ▼
 Queue worker (php artisan queue:work)
@@ -44,8 +44,11 @@ Dashboard (Blade, session auth)
 1. Route `POST /ingest/{ingestKey}` matched; throttle per ingest key applies.
 2. `IngestController` resolves the source, checks size, and delegates verification and
    metadata extraction to the source's provider class.
-3. On acceptance it persists the event, creates deliveries, dispatches jobs, and returns the
-   JSON envelope. All failures return the single JSON error envelope.
+3. On acceptance it persists the event and creates its deliveries inside one DB transaction, so a
+   fan-out failure rolls the event back and the provider's retry re-ingests it rather than
+   short-circuiting on a stranded, delivery-less duplicate. Delivery jobs are dispatched only after
+   that transaction commits, so a worker never sees a delivery whose rows are not yet persisted. It
+   then returns the JSON envelope. All failures return the single JSON error envelope.
 
 **Dashboard** (`routes/web.php`, full web middleware):
 1. `auth` middleware guards everything except `GET|POST /login`.
@@ -253,8 +256,8 @@ Relationships: `belongsToMany(Source)`, `hasMany(Delivery)`.
 |---|---|---|
 | id | ulid PK | sortable, safe to expose; sent as `X-Relay-Event-Id` |
 | source_id | bigint FK → sources.id | indexed |
-| provider_event_id | string, nullable | Stripe `id` / `X-GitHub-Delivery` / `X-Shopify-Webhook-Id` / `X-Event-Id` |
-| dedupe_key | string(191) | provider event id, else `sha256:<hex of body>` |
+| provider_event_id | string, nullable | Stripe `id` / `X-GitHub-Delivery` / `X-Shopify-Webhook-Id` / `X-Event-Id`; capped to the column width |
+| dedupe_key | string(191) | provider event id, hashed to `sha256:<hex>` when longer than the column; else `sha256:<hex of body>` |
 | event_type | string, nullable | Stripe `type` / `X-GitHub-Event` / `X-Shopify-Topic`; null for generic |
 | headers | json | request headers minus denylist (authorization, cookie, proxy headers) |
 | payload | longText | raw request body, verbatim; capped by `INGEST_MAX_BODY_KB` |

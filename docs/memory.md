@@ -53,6 +53,21 @@ work; log every non-obvious decision with its reason. Keep entries short and dat
   `php -S -t public <router>` where the router returns false for existing files; README documents
   the normal `php artisan serve` path. pint clean, 139 tests pass, CI green.
 
+- 2026-07-23 — Ingest robustness pass (two review escalations fixed). (1) Ingest was non-atomic:
+  the event row committed before `createDeliveries()`, so a fan-out failure stranded an event with
+  zero deliveries and the provider's retry then short-circuited as a duplicate — the webhook was
+  silently lost, breaking at-least-once. Wrapped event creation + fan-out in one `DB::transaction`
+  (the unique-race catch is now inside the closure and re-queries before any rollback, so the
+  existing race test still passes) and made `DeliverEvent` dispatch `afterCommit` so a worker never
+  sees a delivery whose rows are unpersisted. Added a test that forces a fan-out failure and proves
+  the event rolls back and a retry re-ingests it. (2) `dedupe_key` was set straight from the
+  provider event id into a `string(191)` column; a generic source sending a longer id threw on
+  MySQL strict mode (500 -> retries forever). Now an over-long id is hashed to `sha256:<hex>` (71
+  chars, deterministic so dedupe still holds) and the stored `provider_event_id` is capped to its
+  255-char column. Added a test with a 300-char id. Both touched `docs/architecture.md` (source of
+  truth): the app-flow diagram, the ingest request lifecycle, and the `webhook_events` column
+  notes. 141 tests pass (was 139), pint clean.
+
 ## Project status
 
 - v1 complete: all three phases implemented, tested (138 passing), and verified live. Remaining
@@ -124,3 +139,14 @@ work; log every non-obvious decision with its reason. Keep entries short and dat
   8.9.5, phpunit 11.5.56 — the upgrade guide asks for exactly these lines). 139 tests still pass,
   pint clean, `composer audit` reports zero advisories. laravel/tinker 3.0.2 and laravel/sail
   1.64.0 exist but are non-security bumps with no advisory against the pins, so both stay put.
+- 2026-07-23 — Ingest atomicity was implemented with the unique-race catch *inside* the
+  `DB::transaction` closure (catch, re-query, return duplicate) rather than around it. The existing
+  race test plants the competing row via a `WebhookEvent::creating` hook on the same connection; a
+  catch placed outside the transaction would roll that planted row back with the failed insert and
+  find nothing on re-query. Keeping the catch inside commits the (planted) row and returns the
+  duplicate, matching real cross-connection behavior on MySQL/SQLite, which never abort a
+  transaction on a duplicate-key error (unlike Postgres, which the app does not target).
+- 2026-07-23 — Over-long ids are bounded rather than the columns widened, so no migration was
+  needed; dedupe semantics hold because the hash is deterministic. Tests run on SQLite, which does
+  not enforce VARCHAR length, so the over-length test asserts the derived key is bounded and
+  dedupes (a DB-agnostic invariant) rather than expecting a raw insert to throw.
