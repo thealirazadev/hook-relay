@@ -9,6 +9,28 @@ signature, persists every event, and forwards each one to your configured destin
 retries, dead-lettering, and a full per-attempt audit trail. A server-rendered dashboard lets you
 browse, filter, inspect, and replay events and deliveries.
 
+## Screenshots
+
+Captured from the running dashboard seeded with `DemoSeeder` (synthetic Stripe/GitHub/Shopify
+sources and `example.com` destinations); reproduce with the steps under
+[Demo data and screenshots](#demo-data-and-screenshots).
+
+![Events browse screen with source, event-type, date-range, and provider-id filters above a table of eight webhook events from Stripe, GitHub, and Shopify sources](docs/images/events-browse.png)
+
+*Events browse: combinable filters over ingested events, with bulk replay.*
+
+![Deliveries browse screen with status, source, and destination filters above a table of deliveries showing pending, delivered, failed, and dead status badges and attempt counts](docs/images/deliveries-browse.png)
+
+*Deliveries browse: every fan-out delivery with its status and attempt count.*
+
+![Delivery detail for a dead delivery to the Analytics Pipeline, showing an eight-row attempt history with HTTP 500/502/503 responses, a connection-refused error, and a request timeout](docs/images/delivery-detail.png)
+
+*Delivery detail: the full per-attempt audit trail — HTTP statuses, errors, and durations.*
+
+![Dead-letter queue listing two deliveries that exhausted all eight attempts, each with a requeue action and a requeue-all button](docs/images/dead-letter-queue.png)
+
+*Dead-letter queue: deliveries that exhausted their attempts, with single and bulk requeue.*
+
 ## Stack
 
 - PHP 8.2+ / Laravel 12.x
@@ -47,6 +69,26 @@ php artisan schedule:work  # runs retention pruning (only needed to exercise pru
 Log in at `/login`, create a source to get its ingest URL (`POST /ingest/{key}`), add a
 destination, and route the destination to the source on the source's edit screen. Point a
 provider webhook at the ingest URL, or send a signed request yourself.
+
+## Demo data and screenshots
+
+`database/seeders/DemoSeeder.php` populates an obviously synthetic dataset (Stripe/GitHub/Shopify
+sources, `example.com` destinations, events and deliveries in every state with full attempt trails)
+for demos and the screenshots above.
+
+```bash
+php artisan migrate:fresh --force
+php artisan db:seed --class=DemoSeeder --force   # login: demo@example.com / password
+```
+
+`scripts/capture-screenshots.mjs` drives Playwright over the seeded dashboard to regenerate the PNGs
+in `docs/images/`. It needs Playwright (not a dependency of this repo) and a running server:
+
+```bash
+npm i -g playwright && npx playwright install chromium
+php artisan serve &   # http://127.0.0.1:8000
+NODE_PATH=$(npm root -g) node scripts/capture-screenshots.mjs
+```
 
 ## Test
 
