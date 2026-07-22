@@ -31,6 +31,12 @@ it('rejects a missing header', function () {
     expect($this->provider->verify(makeRequest($this->body), $this->secret))->toBeFalse();
 });
 
+it('rejects a malformed non-base64 header without erroring', function () {
+    $request = makeRequest($this->body, ['X-Shopify-Hmac-Sha256' => 'not-base64-!!!']);
+
+    expect($this->provider->verify($request, $this->secret))->toBeFalse();
+});
+
 it('extracts the webhook id and topic from headers', function () {
     $request = makeRequest($this->body, [
         'X-Shopify-Webhook-Id' => 'wh-42',
@@ -39,4 +45,11 @@ it('extracts the webhook id and topic from headers', function () {
 
     expect($this->provider->eventId($request))->toBe('wh-42');
     expect($this->provider->eventType($request))->toBe('orders/create');
+});
+
+it('returns null ids when the headers are absent', function () {
+    $request = makeRequest($this->body);
+
+    expect($this->provider->eventId($request))->toBeNull();
+    expect($this->provider->eventType($request))->toBeNull();
 });
