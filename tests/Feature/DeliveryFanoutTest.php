@@ -4,6 +4,7 @@ use App\Jobs\DeliverEvent;
 use App\Models\Delivery;
 use App\Models\Destination;
 use App\Models\Source;
+use App\Models\WebhookEvent;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Testing\TestResponse;
 
@@ -71,4 +72,39 @@ it('does not create new deliveries for a duplicate event', function () {
     ingestGeneric($source, '{"n":1}', ['X-Event-Id' => 'e1'])->assertJson(['data' => ['duplicate' => true]]);
 
     expect(Delivery::count())->toBe(1);
+});
+
+it('rolls the event back when fan-out fails so a retry re-ingests it', function () {
+    $source = Source::factory()->provider('generic')->create(['signing_secret' => 'gen']);
+    $source->destinations()->sync([Destination::factory()->create()->id]);
+    $headers = ['X-Event-Id' => 'evt-atomic'];
+
+    // Force the delivery fan-out to fail after the event row is created.
+    $armed = true;
+    Delivery::creating(function () use (&$armed) {
+        if ($armed) {
+            throw new RuntimeException('fan-out boom');
+        }
+    });
+
+    ingestGeneric($source, '{"n":1}', $headers)
+        ->assertStatus(500)
+        ->assertJson(['error' => ['code' => 'server_error']]);
+
+    // Nothing is stranded: the event and its would-be delivery both rolled back,
+    // and no delivery job leaked to the queue.
+    expect(WebhookEvent::count())->toBe(0);
+    expect(Delivery::count())->toBe(0);
+    Queue::assertNothingPushed();
+
+    // The provider retries the same webhook. Because the strand is gone, the
+    // retry re-ingests it cleanly rather than short-circuiting as a duplicate.
+    $armed = false;
+    ingestGeneric($source, '{"n":1}', $headers)
+        ->assertOk()
+        ->assertJson(['data' => ['duplicate' => false]]);
+
+    expect(WebhookEvent::count())->toBe(1);
+    expect(Delivery::count())->toBe(1);
+    Queue::assertPushed(DeliverEvent::class, 1);
 });
