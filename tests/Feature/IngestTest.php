@@ -156,6 +156,30 @@ it('falls back to a body hash when there is no provider event id', function () {
     expect(WebhookEvent::count())->toBe(2);
 });
 
+it('bounds the dedupe key when a provider sends an over-length event id', function () {
+    $source = Source::factory()->provider('generic')->create(['signing_secret' => 'gen']);
+    $body = '{"a":1}';
+    $longId = str_repeat('e', 300);
+    $headers = ['X-Signature' => genericSignature($body, 'gen'), 'X-Event-Id' => $longId];
+
+    $first = postIngest($source->ingest_key, $body, $headers);
+    $first->assertOk()->assertJson(['data' => ['duplicate' => false]]);
+
+    $event = WebhookEvent::sole();
+    // The stored key fits the dedupe_key column and is the deterministic hash
+    // of the id, so an id longer than the column can never overflow it.
+    expect(mb_strlen($event->dedupe_key))->toBeLessThanOrEqual(191);
+    expect($event->dedupe_key)->toBe('sha256:'.hash('sha256', $longId));
+    // The raw id is capped to the provider_event_id column width.
+    expect(mb_strlen($event->provider_event_id))->toBeLessThanOrEqual(255);
+
+    // Re-sending the same over-length id dedupes: the hash is stable.
+    $second = postIngest($source->ingest_key, $body, $headers);
+    $second->assertOk()->assertJson(['data' => ['duplicate' => true]]);
+    expect($second->json('data.event_id'))->toBe($first->json('data.event_id'));
+    expect(WebhookEvent::count())->toBe(1);
+});
+
 it('stores filtered headers without denylisted ones', function () {
     $source = Source::factory()->provider('generic')->create(['signing_secret' => 'gen']);
     $body = '{"a":1}';
