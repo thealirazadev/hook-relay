@@ -13,6 +13,12 @@ use Illuminate\Support\Facades\Log;
 
 class IngestController extends Controller
 {
+    /** Width of the dedupe_key column; a longer provider id is hashed to fit. */
+    private const DEDUPE_KEY_MAX = 191;
+
+    /** Width of the provider_event_id column; the stored value is capped to fit. */
+    private const PROVIDER_EVENT_ID_MAX = 255;
+
     public function __construct(
         private readonly ProviderResolver $providers,
         private readonly HeaderFilter $headerFilter,
@@ -45,7 +51,7 @@ class IngestController extends Controller
         }
 
         $providerEventId = $provider->eventId($request);
-        $dedupeKey = $providerEventId ?? 'sha256:'.hash('sha256', $body);
+        $dedupeKey = $this->dedupeKey($providerEventId, $body);
 
         if ($existing = $source->events()->where('dedupe_key', $dedupeKey)->first()) {
             Log::info('ingest.duplicate', ['source_id' => $source->id, 'event_id' => $existing->id]);
@@ -60,7 +66,9 @@ class IngestController extends Controller
         $result = DB::transaction(function () use ($source, $provider, $request, $providerEventId, $dedupeKey, $body) {
             try {
                 $event = $source->events()->create([
-                    'provider_event_id' => $providerEventId,
+                    'provider_event_id' => $providerEventId === null
+                        ? null
+                        : mb_substr($providerEventId, 0, self::PROVIDER_EVENT_ID_MAX),
                     'dedupe_key' => $dedupeKey,
                     'event_type' => $provider->eventType($request),
                     'headers' => $this->headerFilter->filter($request->headers->all()),
@@ -97,6 +105,25 @@ class IngestController extends Controller
         ]);
 
         return $this->accepted($result['event']->id, false);
+    }
+
+    /**
+     * Derive the dedupe key for an event. Falls back to a body hash when the
+     * provider supplies no event id, and hashes an over-long provider id so the
+     * key always fits the dedupe_key column. Hashing is deterministic, so the
+     * same provider id always maps to the same key and dedupe is preserved.
+     */
+    private function dedupeKey(?string $providerEventId, string $body): string
+    {
+        if ($providerEventId === null) {
+            return 'sha256:'.hash('sha256', $body);
+        }
+
+        if (mb_strlen($providerEventId) > self::DEDUPE_KEY_MAX) {
+            return 'sha256:'.hash('sha256', $providerEventId);
+        }
+
+        return $providerEventId;
     }
 
     private function accepted(string $eventId, bool $duplicate): JsonResponse
