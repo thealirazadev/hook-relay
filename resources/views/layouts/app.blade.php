@@ -13,12 +13,12 @@
             <a href="{{ url('/') }}" class="brand">hook-relay</a>
             @auth
                 <nav class="site-nav" aria-label="Primary">
-                    <a href="{{ url('/') }}" class="{{ request()->is('/') ? 'active' : '' }}">Dashboard</a>
-                    <a href="{{ url('/sources') }}" class="{{ request()->is('sources*') ? 'active' : '' }}">Sources</a>
-                    <a href="{{ url('/destinations') }}" class="{{ request()->is('destinations*') ? 'active' : '' }}">Destinations</a>
-                    <a href="{{ url('/events') }}" class="{{ request()->is('events*') ? 'active' : '' }}">Events</a>
-                    <a href="{{ url('/deliveries') }}" class="{{ request()->is('deliveries*') ? 'active' : '' }}">Deliveries</a>
-                    <a href="{{ url('/dlq') }}" class="{{ request()->is('dlq*') ? 'active' : '' }}">Dead letters</a>
+                    <a href="{{ url('/') }}" class="{{ request()->is('/') ? 'active' : '' }}" @if (request()->is('/')) aria-current="page" @endif>Dashboard</a>
+                    <a href="{{ url('/sources') }}" class="{{ request()->is('sources*') ? 'active' : '' }}" @if (request()->is('sources*')) aria-current="page" @endif>Sources</a>
+                    <a href="{{ url('/destinations') }}" class="{{ request()->is('destinations*') ? 'active' : '' }}" @if (request()->is('destinations*')) aria-current="page" @endif>Destinations</a>
+                    <a href="{{ url('/events') }}" class="{{ request()->is('events*') ? 'active' : '' }}" @if (request()->is('events*')) aria-current="page" @endif>Events</a>
+                    <a href="{{ url('/deliveries') }}" class="{{ request()->is('deliveries*') ? 'active' : '' }}" @if (request()->is('deliveries*')) aria-current="page" @endif>Deliveries</a>
+                    <a href="{{ url('/dlq') }}" class="{{ request()->is('dlq*') ? 'active' : '' }}" @if (request()->is('dlq*')) aria-current="page" @endif>Dead letters</a>
                 </nav>
                 <form method="POST" action="{{ url('/logout') }}">
                     @csrf
