@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
 </head>
 <body>
+    <a href="#main" class="skip-link">Skip to main content</a>
     <header class="site-header">
         <div class="bar">
             <a href="{{ url('/') }}" class="brand">hook-relay</a>
@@ -38,7 +39,7 @@
         </div>
     @endif
 
-    <main>
+    <main id="main" tabindex="-1">
         @yield('content')
     </main>
 
