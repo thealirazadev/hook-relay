@@ -3,7 +3,9 @@
 use App\Jobs\DeliverEvent;
 use App\Models\Delivery;
 use App\Models\DeliveryAttempt;
+use App\Models\Destination;
 use App\Models\User;
+use App\Models\WebhookEvent;
 use Illuminate\Support\Facades\Queue;
 
 beforeEach(function () {
@@ -66,4 +68,21 @@ it('requeues every dead delivery in bulk', function () {
     expect(Delivery::where('status', Delivery::STATUS_DEAD)->count())->toBe(0);
     expect(Delivery::where('status', Delivery::STATUS_PENDING)->count())->toBe(5);
     Queue::assertPushed(DeliverEvent::class, 5);
+});
+
+it('requeues every dead delivery across the chunk boundary', function () {
+    $event = WebhookEvent::factory()->create();
+    $destination = Destination::factory()->create();
+    Delivery::factory()->dead()->count(150)->create([
+        'webhook_event_id' => $event->id,
+        'destination_id' => $destination->id,
+    ]);
+
+    $this->post('/dlq/requeue-all')
+        ->assertRedirect('/dlq')
+        ->assertSessionHas('status', 'Requeued 150 deliveries.');
+
+    expect(Delivery::where('status', Delivery::STATUS_DEAD)->count())->toBe(0);
+    expect(Delivery::where('status', Delivery::STATUS_PENDING)->count())->toBe(150);
+    Queue::assertPushed(DeliverEvent::class, 150);
 });
