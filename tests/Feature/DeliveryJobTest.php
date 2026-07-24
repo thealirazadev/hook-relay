@@ -170,6 +170,17 @@ it('caps the stored response body excerpt at 2048 bytes', function () {
     expect(strlen($delivery->attempts()->first()->response_body_excerpt))->toBe(2048);
 });
 
+it('still delivers to a destination that was soft-deleted after fan-out', function () {
+    Http::fake(['*' => Http::response('ok', 200)]);
+    $delivery = makeDelivery();
+    $delivery->destination->delete();
+
+    runJob($delivery);
+
+    expect($delivery->fresh()->status)->toBe(Delivery::STATUS_DELIVERED);
+    Http::assertSent(fn ($request) => $request->url() === 'https://dest.test/hook');
+});
+
 it('skips a delivery that is already terminal', function () {
     Http::fake();
     $delivery = makeDelivery(['status' => Delivery::STATUS_DELIVERED]);
