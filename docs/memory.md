@@ -68,6 +68,27 @@ work; log every non-obvious decision with its reason. Keep entries short and dat
   truth): the app-flow diagram, the ingest request lifecycle, and the `webhook_events` column
   notes. 141 tests pass (was 139), pint clean.
 
+- 2026-07-25 — Repo-maturity and accessibility pass (12 commits, CI green). Added the community
+  health files this public repo lacked: CONTRIBUTING.md (real setup/pint/pest commands from
+  docs/testing.md and standards from docs/rules.md), CODE_OF_CONDUCT.md (Contributor Covenant 2.1,
+  contact thealirazadev@gmail.com), .github issue templates (bug/feature + config.yml; dropped a
+  Discussions contact link because Discussions are disabled on the repo), a PR template whose
+  checklist ties to pint + pest, and a Keep-a-Changelog CHANGELOG.md kept honest as `[Unreleased]`
+  since no version is tagged. `.editorconfig` already existed, so it was not re-added. Accessibility:
+  a visually-hidden skip-to-content link plus `.sr-only`/`.skip-link` CSS and a focusable
+  `<main id="main" tabindex="-1">`; `aria-current="page"` on the active nav item; and a visually
+  hidden "Delivery status:" label inside the shared badge partial so screen readers get context on
+  the dashboard stat tiles (where no column header exists) as well as the tables and detail views.
+  Existing filters were already `<label for>`-associated and focus was already visible via
+  `:focus-visible`, so those listed items were verified as already-present, not re-done. Coverage:
+  the provider signature paths were already exhaustive, so no provider tests were padded; added four
+  genuinely new cases against untested branches — outbound Content-Type default (`?:` fallback),
+  multi-value response-header flattening (lowercased, comma-joined), delivery to a soft-deleted
+  destination still sending via `withTrashed` (guards a null-destination crash), and requeue-all
+  traversing the `chunkById(100)` boundary with 150 dead deliveries (proves none are skipped while
+  the filter column mutates). 155 tests pass (was 148), pint clean, no application logic changed
+  beyond the three Blade/CSS accessibility edits.
+
 ## Project status
 
 - v1 complete: all three phases implemented, tested (138 passing), and verified live. Remaining
