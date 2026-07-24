@@ -69,6 +69,16 @@ it('sends idempotency headers and the raw body byte-identical', function () {
     });
 });
 
+it('sends the stored content type and defaults to application/json when the event has none', function () {
+    Http::fake(['*' => Http::response('ok', 200)]);
+
+    runJob(makeDelivery([], ['content_type' => 'application/xml']));
+    Http::assertSent(fn ($request) => $request->hasHeader('Content-Type', 'application/xml'));
+
+    runJob(makeDelivery([], ['content_type' => null]));
+    Http::assertSent(fn ($request) => $request->hasHeader('Content-Type', 'application/json'));
+});
+
 it('marks a delivery failed and schedules a retry when budget remains', function () {
     Http::fake(['*' => Http::response('boom', 500)]);
     $delivery = makeDelivery(['max_attempts' => 8]);
