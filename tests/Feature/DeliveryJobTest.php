@@ -150,6 +150,17 @@ it('records a connection error as an attempt with the error set', function () {
     $job->assertReleased();
 });
 
+it('flattens multi-value response headers into a lowercased comma-joined map', function () {
+    Http::fake(['*' => Http::response('ok', 200, ['X-Multi' => ['a', 'b'], 'X-Single' => 'one'])]);
+    $delivery = makeDelivery();
+
+    runJob($delivery);
+
+    $headers = $delivery->attempts()->first()->response_headers;
+    expect($headers)->toHaveKey('x-multi', 'a, b');
+    expect($headers)->toHaveKey('x-single', 'one');
+});
+
 it('caps the stored response body excerpt at 2048 bytes', function () {
     Http::fake(['*' => Http::response(str_repeat('a', 5000), 500)]);
     $delivery = makeDelivery(['max_attempts' => 8]);
