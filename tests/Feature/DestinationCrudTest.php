@@ -2,9 +2,25 @@
 
 use App\Models\Destination;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
 beforeEach(function () {
     $this->actingAs(User::factory()->create());
+});
+
+it('generates a signing secret on create and stores it encrypted', function () {
+    $this->post('/destinations', [
+        'name' => 'Signed consumer',
+        'url' => 'https://consumer.test/webhooks',
+        'active' => '1',
+    ])->assertRedirect('/destinations');
+
+    $destination = Destination::sole();
+    expect($destination->signing_secret)->toStartWith('whsec_');
+
+    $raw = DB::table('destinations')->where('id', $destination->id)->value('signing_secret');
+    expect($raw)->not->toBe($destination->signing_secret)
+        ->and($raw)->not->toContain('whsec_');
 });
 
 it('lists destinations', function () {

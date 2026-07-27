@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\Destination;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
 
 /**
  * @extends Factory<Destination>
@@ -21,6 +22,7 @@ class DestinationFactory extends Factory
             'name' => fake()->unique()->words(2, true).' endpoint',
             'url' => 'https://'.fake()->domainName().'/webhooks',
             'active' => true,
+            'signing_secret' => 'whsec_'.Str::random(40),
         ];
     }
 
