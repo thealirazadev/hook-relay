@@ -21,6 +21,8 @@ Route::middleware('auth')->group(function () {
 
     Route::resource('sources', SourceController::class)->except(['show']);
     Route::resource('destinations', DestinationController::class)->except(['show']);
+    Route::post('/destinations/{destination}/rotate-secret', [DestinationController::class, 'rotateSecret'])
+        ->name('destinations.rotate-secret');
 
     Route::get('/events', [EventController::class, 'index'])->name('events.index');
     Route::post('/events/replay', [EventController::class, 'bulkReplay'])->name('events.bulk-replay');

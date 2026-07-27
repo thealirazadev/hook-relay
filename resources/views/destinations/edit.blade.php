@@ -36,4 +36,34 @@
             </div>
         </form>
     </div>
+
+    <div class="card">
+        <h2>Signing secret</h2>
+        <p class="help">
+            hook-relay signs every forwarded delivery with this secret and sends the result in the
+            <span class="mono">X-Relay-Signature</span> header. Give the secret to this destination's
+            consumer so it can verify deliveries. Keep it private; anyone with it can forge signatures.
+        </p>
+
+        @if (session('revealed_secret'))
+            <div class="alert alert-success" role="status">
+                <p><strong>New signing secret</strong> (shown once - copy it now):</p>
+                <p class="mono">{{ session('revealed_secret') }}</p>
+            </div>
+        @else
+            <details>
+                <summary class="btn btn-secondary btn-sm">Show current signing secret</summary>
+                <p class="mono">{{ $destination->signing_secret }}</p>
+            </details>
+        @endif
+
+        <details class="confirm">
+            <summary class="btn btn-danger btn-sm">Rotate signing secret</summary>
+            <form method="POST" action="{{ url('/destinations/'.$destination->id.'/rotate-secret') }}" class="confirm-body">
+                @csrf
+                <span class="small">Rotating immediately invalidates the current secret. Update this destination's consumer with the new value or its deliveries will fail verification.</span>
+                <button type="submit" class="btn btn-danger btn-sm">Confirm rotate</button>
+            </form>
+        </details>
+    </div>
 @endsection

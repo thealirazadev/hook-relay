@@ -6,6 +6,7 @@ use App\Http\Requests\StoreDestinationRequest;
 use App\Http\Requests\UpdateDestinationRequest;
 use App\Models\Destination;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class DestinationController extends Controller
@@ -46,5 +47,16 @@ class DestinationController extends Controller
         $destination->delete();
 
         return redirect('/destinations')->with('status', "Destination \"{$destination->name}\" deleted.");
+    }
+
+    public function rotateSecret(Destination $destination): RedirectResponse
+    {
+        $secret = $destination->rotateSigningSecret();
+
+        Log::info('destination.secret_rotated', ['destination_id' => $destination->id]);
+
+        return redirect('/destinations/'.$destination->id.'/edit')
+            ->with('status', "Signing secret for \"{$destination->name}\" rotated. Copy the new secret now; the old one no longer verifies.")
+            ->with('revealed_secret', $secret);
     }
 }

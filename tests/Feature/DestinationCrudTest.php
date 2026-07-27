@@ -87,3 +87,32 @@ it('soft deletes a destination', function () {
     expect(Destination::count())->toBe(0);
     expect(Destination::withTrashed()->count())->toBe(1);
 });
+
+it('reveals the current signing secret on the edit screen', function () {
+    $destination = Destination::factory()->create(['signing_secret' => 'whsec_visible']);
+
+    $this->get('/destinations/'.$destination->id.'/edit')
+        ->assertOk()
+        ->assertSee('whsec_visible');
+});
+
+it('rotates the signing secret and reveals the new one once', function () {
+    $destination = Destination::factory()->create();
+    $old = $destination->signing_secret;
+
+    $this->post('/destinations/'.$destination->id.'/rotate-secret')
+        ->assertRedirect('/destinations/'.$destination->id.'/edit')
+        ->assertSessionHas('revealed_secret');
+
+    $new = $destination->fresh()->signing_secret;
+    expect($new)->not->toBe($old)
+        ->and($new)->toStartWith('whsec_');
+});
+
+it('requires authentication to rotate a signing secret', function () {
+    auth()->logout();
+    $destination = Destination::factory()->create();
+
+    $this->post('/destinations/'.$destination->id.'/rotate-secret')
+        ->assertRedirect('/login');
+});
