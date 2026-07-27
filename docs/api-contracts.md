@@ -93,12 +93,35 @@ User-Agent: hook-relay/1.0
 X-Relay-Event-Id: 01J2ZK8Q4V9WXY5T3M1N7P6R2S
 X-Relay-Delivery-Id: 01J2ZKA31H8FDT0C9G4B5E7XQM
 X-Relay-Source: <source name>
+X-Relay-Timestamp: 1737840000
+X-Relay-Signature: sha256=9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
 
 <original raw payload, unmodified>
 ```
 
+### Signature headers
+
+Each destination has its own generated signing secret (encrypted at rest, viewable and rotatable
+on its dashboard edit screen). Every forwarded request carries:
+
+| Header | Value |
+|---|---|
+| `X-Relay-Timestamp` | Unix epoch seconds when the relay signed the delivery. |
+| `X-Relay-Signature` | `sha256=<lowercase hex hmac_sha256(secret, "{timestamp}.{raw body}")>`. |
+
+The signed payload is `"{X-Relay-Timestamp}.{raw request body}"` — the same construction the inbound
+Stripe verifier uses — so the timestamp is authenticated and a consumer can reject stale deliveries
+within a tolerance window (replay defence). Comparison must be constant-time (`hash_equals` or your
+language's equivalent). The full verification recipe is in the README. Rotating a destination's
+secret takes effect on the next delivery; requeues and replays sign with the current secret and a
+fresh timestamp, so a rotated-away secret stops verifying immediately.
+
 Contract for consumers:
 
+- **Verify `X-Relay-Signature`** against the destination's signing secret before trusting a
+  delivery, and reject any request whose signature does not match or whose `X-Relay-Timestamp` is
+  outside your tolerance. This proves the delivery came from your relay and its body was not
+  altered in transit.
 - **Dedupe on `X-Relay-Event-Id`.** It is stable for the lifetime of the event — identical across
   retries, requeues, and replays. `X-Relay-Delivery-Id` is unique per delivery and identifies the
   audit-trail row.
