@@ -24,6 +24,10 @@ release has been tagged yet; everything below is currently on `main`.
   2048 bytes), duration, and connection errors.
 - Sources and destinations CRUD with encrypted signing secrets, soft deletes, and
   per-source routing.
+- Outbound delivery signing: each destination has its own generated signing secret, and
+  every forwarded delivery carries `X-Relay-Timestamp` and an `X-Relay-Signature`
+  (HMAC-SHA256 over `"{timestamp}.{body}"`) so consumers can verify origin and integrity;
+  the secret is viewable and rotatable from the dashboard.
 - Server-rendered dashboard: status overview, events and deliveries browse with
   combinable filters, event and delivery detail, and a dead-letter queue with single and
   bulk requeue.

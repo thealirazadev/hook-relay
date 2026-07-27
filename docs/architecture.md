@@ -23,6 +23,7 @@ Queue worker (php artisan queue:work)
         ├─ state: delivering
         ├─ POST payload to destination URL
         │     headers: X-Relay-Event-Id, X-Relay-Delivery-Id, X-Relay-Source,
+        │              X-Relay-Timestamp, X-Relay-Signature (HMAC over ts.body),
         │              original Content-Type; 10s timeout; redirects not followed
         ├─ record DeliveryAttempt (status, headers, body excerpt, duration | error)
         ├─ 2xx        → state: delivered (terminal)
@@ -124,6 +125,7 @@ app/
     │   ├── GenericProvider.php            # X-Signature: sha256=<hex>
     │   └── ProviderResolver.php           # provider enum -> instance
     ├── Backoff.php                        # delay-with-jitter calculation
+    ├── DeliverySigner.php                 # HMAC over ts.body for outbound signature headers (v2)
     └── HeaderFilter.php                   # strips denylisted headers before storage
 
 config/
@@ -138,7 +140,8 @@ database/
 │   ├── 2026_07_01_000200_create_webhook_events_table.php
 │   ├── 2026_07_01_000300_create_destinations_table.php
 │   ├── 2026_07_01_000400_create_source_destination_table.php
-│   └── 2026_07_01_000500_create_deliveries_and_attempts_tables.php
+│   ├── 2026_07_01_000500_create_deliveries_and_attempts_tables.php
+│   └── 2026_07_27_000100_add_signing_secret_to_destinations_table.php  # v2 outbound signing
 ├── factories/                             # User, Source, Destination, WebhookEvent,
 │   └── ...                                # Delivery, DeliveryAttempt
 └── seeders/DatabaseSeeder.php
@@ -240,10 +243,17 @@ Relationships: `hasMany(WebhookEvent)`, `belongsToMany(Destination)`.
 | id | bigint PK | |
 | name | string | |
 | url | string(2048) | validated http/https |
+| signing_secret | text | encrypted cast; generated on create; signs forwarded deliveries; rotatable |
 | active | boolean, default true | inactive destinations get no new deliveries |
 | timestamps + deleted_at | | soft delete keeps attempt history intact |
 
 Relationships: `belongsToMany(Source)`, `hasMany(Delivery)`.
+
+Added in v2 (Phase 4): each destination gets its own generated signing secret. Every forwarded
+delivery carries `X-Relay-Timestamp` and `X-Relay-Signature`
+(`sha256=<hex hmac_sha256(secret, "{timestamp}.{body}")>`) so consumers can verify origin and
+integrity. See `docs/api-contracts.md` for the header contract and the README for the verification
+recipe.
 
 ### source_destination
 | Field | Type | Notes |
@@ -308,8 +318,9 @@ session, cache, and queue).
 - **Session** — operator auth state, database-backed. The ingest route is stateless.
 - **Queue state** — `jobs` table rows plus each job's retry bookkeeping; delivery status columns
   are the authoritative view, written by the job at every transition.
-- **Secrets/config** — `.env` only. Source signing secrets are the one secret class stored in the
-  database, encrypted at rest with `APP_KEY` via Eloquent's `encrypted` cast.
+- **Secrets/config** — `.env` only, except two secret classes stored in the database and encrypted
+  at rest with `APP_KEY` via Eloquent's `encrypted` cast: each source's inbound provider signing
+  secret, and each destination's outbound delivery signing secret (v2).
 - **Nothing client-side** beyond the session cookie; no JS state, no local storage.
 
 ## Retention pruning
