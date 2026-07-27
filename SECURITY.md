@@ -11,7 +11,7 @@ hook-relay is distributed as source and security fixes land on `main`. Run the l
 
 ## Reporting a vulnerability
 
-Please report suspected vulnerabilities privately — do not open a public issue or pull request.
+Please report suspected vulnerabilities privately - do not open a public issue or pull request.
 
 Use GitHub's private vulnerability reporting for this repository:
 <https://github.com/thealirazadev/hook-relay/security/advisories/new>

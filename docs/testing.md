@@ -1,4 +1,4 @@
-# Testing — hook-relay
+# Testing - hook-relay
 
 ## Strategy
 
@@ -22,7 +22,7 @@ Unit tests:
 - Each provider class: valid signature accepted; tampered body, wrong secret, missing/malformed
   header rejected; Stripe timestamp inside/outside the 300s tolerance; Stripe multiple `v1`
   entries; correct event id and event type extraction; hash fallback when the id is absent.
-- `Backoff`: exact base progression, cap at 3600s, jitter stays within 0.8–1.2, attempt cap.
+- `Backoff`: exact base progression, cap at 3600s, jitter stays within 0.8-1.2, attempt cap.
 - `HeaderFilter`: denylisted headers (authorization, cookie, proxy) stripped; others preserved.
 
 Feature tests:
@@ -94,8 +94,8 @@ php artisan schedule:work    # pruning (only needed when testing retention)
 
 A feature is not done until all of the following pass, in order:
 
-1. `./vendor/bin/pint --test` — no style violations.
-2. `php artisan test` — full suite green, new tests included.
+1. `./vendor/bin/pint --test` - no style violations.
+2. `php artisan test` - full suite green, new tests included.
 3. The feature's manual checklist items in `docs/phases.md` pass.
 
 After creating or editing files, run build/tests and fix all errors before reporting done. One

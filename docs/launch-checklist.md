@@ -1,4 +1,4 @@
-# Launch Checklist — hook-relay
+# Launch Checklist - hook-relay
 
 Work top to bottom before going to production. Nothing is checked until verified in the target
 environment.
@@ -7,7 +7,7 @@ environment.
 
 - [ ] Production `.env` created from `.env.example` with real values (no dummies).
 - [ ] `APP_KEY` generated for production (note: rotating it later invalidates stored encrypted
-      signing secrets — back it up).
+      signing secrets - back it up).
 - [ ] `APP_DEBUG=false`, `APP_ENV=production`.
 - [ ] `APP_URL` set to the real public host (ingest URLs shown in the dashboard build from it).
 - [ ] `DB_*` points at production MySQL; credentials stored securely, not in the repo.

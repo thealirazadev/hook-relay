@@ -1,4 +1,4 @@
-# Phases — hook-relay
+# Phases - hook-relay
 
 **Rule: phase N+1 does not start until the owner approves phase N.** Phases are ordered
 smallest-useful-shippable first; each ends green (app runs, tests pass, Pint clean, logs quiet).
@@ -11,7 +11,7 @@ these may slip to a later phase.
 
 ---
 
-## Phase 1 — Foundation, sources, and verified idempotent ingest
+## Phase 1 - Foundation, sources, and verified idempotent ingest
 
 **Goal**: A provider webhook pointed at a hook-relay URL is signature-verified and durably,
 idempotently persisted. Smallest slice that is already useful (a webhook inbox with proof of
@@ -79,7 +79,7 @@ receipt).
 
 ---
 
-## Phase 2 — Destinations, routing, and at-least-once delivery with DLQ
+## Phase 2 - Destinations, routing, and at-least-once delivery with DLQ
 
 **Goal**: Accepted events are forwarded to routed destinations with retries, backoff + jitter,
 a dead-letter state with manual requeue, idempotency headers, and a complete per-attempt audit
@@ -96,9 +96,9 @@ trail. This phase delivers the remaining senior differentiators.
 - `DeliverEvent` job: marks `delivering`, POSTs the raw payload with `X-Relay-Event-Id`,
   `X-Relay-Delivery-Id`, `X-Relay-Source`, original `Content-Type`, and the 10s timeout; does
   not follow redirects; records a `delivery_attempts` row for every attempt (status, headers,
-  2048-byte body excerpt, duration — or `error` on connection failure/timeout).
+  2048-byte body excerpt, duration - or `error` on connection failure/timeout).
 - 2xx → `delivered`. Failure with budget left → `failed` + `next_attempt_at` per the backoff
-  formula (`min(30 * 2^(n-1), 3600)` seconds, jitter factor 0.8–1.2), retried via job
+  formula (`min(30 * 2^(n-1), 3600)` seconds, jitter factor 0.8-1.2), retried via job
   `tries`/`backoff`. Budget exhausted → `dead` via the job's `failed()` hook.
 - DLQ page lists dead deliveries with per-row requeue and requeue-all (chunked); requeue resets
   status to `pending`, dispatches a fresh job with a fresh budget, and preserves all prior
@@ -154,7 +154,7 @@ trail. This phase delivers the remaining senior differentiators.
 
 ---
 
-## Phase 3 — Dashboard browsing, replay, retention, and hardening
+## Phase 3 - Dashboard browsing, replay, retention, and hardening
 
 **Goal**: The operator can find anything (filters + search), replay events singly and in bulk,
 and run the instance long-term (pruning, ingest throttling, polish).
@@ -295,4 +295,4 @@ signer is `hash_hmac` from the standard library, exactly like the inbound verifi
 
 ## Backlog
 
-_(empty — move out-of-scope ideas here with a one-line rationale)_
+_(empty - move out-of-scope ideas here with a one-line rationale)_

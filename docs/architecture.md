@@ -1,4 +1,4 @@
-# Architecture — hook-relay
+# Architecture - hook-relay
 
 ## App flow
 
@@ -41,7 +41,7 @@ Dashboard (Blade, session auth)
 
 ## Request lifecycle
 
-**Ingest** (`routes/ingest.php`, minimal middleware — no session, no CSRF):
+**Ingest** (`routes/ingest.php`, minimal middleware - no session, no CSRF):
 1. Route `POST /ingest/{ingestKey}` matched; throttle per ingest key applies.
 2. `IngestController` resolves the source, checks size, and delegates verification and
    metadata extraction to the source's provider class.
@@ -62,7 +62,7 @@ States live on `deliveries.status`. Transitions are the only allowed ones:
 
 | From | To | Trigger |
 |---|---|---|
-| — | `pending` | Event accepted, replay, or manual requeue |
+| - | `pending` | Event accepted, replay, or manual requeue |
 | `pending` | `delivering` | Worker picks up the job |
 | `delivering` | `delivered` | Destination returned 2xx (terminal) |
 | `delivering` | `failed` | Non-2xx, timeout, or connection error with attempts remaining; `next_attempt_at` set |
@@ -77,7 +77,7 @@ Downstream consumers must dedupe on `X-Relay-Event-Id` (stable across retries an
 **Backoff schedule.** Retry delay for attempt n (n ≥ 1 failed attempts so far) is
 `min(30 * 2^(n-1), 3600)` seconds, then multiplied by a uniform random factor in `[0.8, 1.2]`
 (jitter, so synchronized failures do not retry in lockstep). With the default cap of 8 attempts:
-~30s, 1m, 2m, 4m, 8m, 16m, 32m after the first try — roughly one hour of cover, then `dead`.
+~30s, 1m, 2m, 4m, 8m, 16m, 32m after the first try - roughly one hour of cover, then `dead`.
 Implemented with the framework's job retry mechanics: `tries` = `DELIVERY_MAX_ATTEMPTS`,
 `backoff()` computes the delay, `failed()` marks the delivery `dead`. A manual requeue dispatches
 a brand-new job with a fresh budget; `deliveries.attempt_count` keeps the lifetime total and
@@ -185,27 +185,27 @@ tests/
 
 ## Tech stack with rationale
 
-- **Laravel 12.x (PHP 8.2+)** — Routing, validation, Eloquent, queued jobs with retry/backoff
+- **Laravel 12.x (PHP 8.2+)** - Routing, validation, Eloquent, queued jobs with retry/backoff
   built in, scheduler for pruning, first-class testing (`Http::fake`, `Queue::fake`). Exact
   versions are pinned at install time and `composer.lock` is committed. Originally built on 11.x;
   moved to 12.x because the security fixes for the framework advisories this app was exposed to
   ship only on the 12.x line. The 11 → 12 upgrade required no application code changes.
-- **Database queue driver** — The queue is the heart of the product, and the `database` driver
+- **Database queue driver** - The queue is the heart of the product, and the `database` driver
   keeps the whole deployment a single PHP + database box. Trade-off: lower throughput and
   DB-polling overhead versus Redis; acceptable because a self-hosted relay handles hundreds of
   events per minute, not thousands per second, and losing the Redis dependency makes self-hosting
   materially easier. Jobs and failed jobs live in `jobs`/`failed_jobs`, so queue state shares the
   database backup story.
-- **SQLite (dev) / MySQL 8.x (prod)** — SQLite gives zero-setup local dev and in-memory tests;
+- **SQLite (dev) / MySQL 8.x (prod)** - SQLite gives zero-setup local dev and in-memory tests;
   MySQL is the deployed target for concurrent worker + web writes. Trade-off: two engines mean
   avoiding driver-specific SQL (no raw `DATE()`/`strftime()`), which the codebase enforces by
   doing date bucketing and JSON handling in PHP.
-- **Blade + one static CSS file** — Server-rendered pages, plain form POSTs, no Node toolchain,
+- **Blade + one static CSS file** - Server-rendered pages, plain form POSTs, no Node toolchain,
   no build step. Boring is a feature for an ops dashboard; see `docs/design.md`.
-- **Laravel HTTP client (bundled Guzzle)** — Outbound delivery POSTs with timeouts and
+- **Laravel HTTP client (bundled Guzzle)** - Outbound delivery POSTs with timeouts and
   `Http::fake` testability; no new dependency.
-- **Pest on PHPUnit** — Concise feature/unit tests, same engine as `artisan test`.
-- **Laravel Pint** — Zero-config PSR-12 formatting.
+- **Pest on PHPUnit** - Concise feature/unit tests, same engine as `artisan test`.
+- **Laravel Pint** - Zero-config PSR-12 formatting.
 
 No other runtime dependencies. Signature verification is `hash_hmac` + `hash_equals` from the
 standard library; no provider SDKs.
@@ -275,7 +275,7 @@ recipe.
 | received_at | datetime | |
 | created_at | datetime | no updated_at; events are immutable |
 
-Indexes: unique `(source_id, dedupe_key)` — the idempotency guarantee; `(source_id, received_at)`
+Indexes: unique `(source_id, dedupe_key)` - the idempotency guarantee; `(source_id, received_at)`
 and `event_type` for dashboard filters.
 
 ### deliveries
@@ -313,10 +313,10 @@ session, cache, and queue).
 
 ## Where state lives
 
-- **Database (single source of truth)** — sources, destinations, routing, events, deliveries,
+- **Database (single source of truth)** - sources, destinations, routing, events, deliveries,
   attempts, queued jobs, sessions, cache. One backup covers everything.
-- **Session** — operator auth state, database-backed. The ingest route is stateless.
-- **Queue state** — `jobs` table rows plus each job's retry bookkeeping; delivery status columns
+- **Session** - operator auth state, database-backed. The ingest route is stateless.
+- **Queue state** - `jobs` table rows plus each job's retry bookkeeping; delivery status columns
   are the authoritative view, written by the job at every transition.
 - **Secrets/config** - `.env` only, except two secret classes stored in the database and encrypted
   at rest with `APP_KEY` via Eloquent's `encrypted` cast: each source's inbound provider signing
@@ -328,7 +328,7 @@ session, cache, and queue).
 `WebhookEvent` uses the `Prunable` trait: prunable when `received_at` is older than
 `RETENTION_DAYS` and no delivery of the event is `pending`, `delivering`, or `failed`.
 `model:prune` runs daily via the scheduler; deliveries and attempts go with their event via FK
-cascade. Trade-off: pruning loses old audit history — acceptable for a self-hosted tool where the
+cascade. Trade-off: pruning loses old audit history - acceptable for a self-hosted tool where the
 retention window is operator-configured; set `RETENTION_DAYS` higher if compliance needs it.
 
 ## External dependencies and required env vars

@@ -5,7 +5,7 @@ guide covers everything you need to get a working local copy, run the checks, an
 request that lands cleanly.
 
 By participating you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md). Security issues
-must **not** be filed as public issues or pull requests — follow the [Security Policy](SECURITY.md)
+must **not** be filed as public issues or pull requests - follow the [Security Policy](SECURITY.md)
 instead.
 
 ## Prerequisites

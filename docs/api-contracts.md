@@ -1,7 +1,7 @@
-# API Contracts — hook-relay
+# API Contracts - hook-relay
 
 Two HTTP surfaces exist: the public JSON **ingest endpoint** and the session-authenticated
-**dashboard** (server-rendered HTML, plain form POSTs — not a JSON API). This file also fixes the
+**dashboard** (server-rendered HTML, plain form POSTs - not a JSON API). This file also fixes the
 **outbound delivery request** contract, which downstream consumers depend on. All three are agreed
 here before any code is written.
 
@@ -61,7 +61,7 @@ Provider event id (dedupe key) and event type extraction:
 | `stripe` | JSON body `id` | JSON body `type` |
 | `github` | `X-GitHub-Delivery` header | `X-GitHub-Event` header |
 | `shopify` | `X-Shopify-Webhook-Id` header | `X-Shopify-Topic` header |
-| `generic` | `X-Event-Id` header (optional) | — |
+| `generic` | `X-Event-Id` header (optional) | - |
 
 When no provider event id is present, the dedupe key falls back to `sha256:<hex sha256(body)>`.
 Dedupe is scoped per source: unique `(source_id, dedupe_key)`.
@@ -71,12 +71,12 @@ Response `200` (accepted, first time):
 { "data": { "event_id": "01J2ZK8Q4V9WXY5T3M1N7P6R2S", "duplicate": false } }
 ```
 
-Response `200` (duplicate — provider retry; nothing new persisted, no new deliveries):
+Response `200` (duplicate - provider retry; nothing new persisted, no new deliveries):
 ```json
 { "data": { "event_id": "01J2ZK8Q4V9WXY5T3M1N7P6R2S", "duplicate": true } }
 ```
 
-`event_id` is the stored event's ULID — the same value later sent downstream as
+`event_id` is the stored event's ULID - the same value later sent downstream as
 `X-Relay-Event-Id`. Errors: see the code table above. Providers treat any 2xx as success, so
 duplicates deliberately return 200, not 409.
 
@@ -122,12 +122,12 @@ Contract for consumers:
   delivery, and reject any request whose signature does not match or whose `X-Relay-Timestamp` is
   outside your tolerance. This proves the delivery came from your relay and its body was not
   altered in transit.
-- **Dedupe on `X-Relay-Event-Id`.** It is stable for the lifetime of the event — identical across
+- **Dedupe on `X-Relay-Event-Id`.** It is stable for the lifetime of the event - identical across
   retries, requeues, and replays. `X-Relay-Delivery-Id` is unique per delivery and identifies the
   audit-trail row.
 - A response with any **2xx** status within `DELIVERY_TIMEOUT_SECONDS` (default 10s) marks the
-  delivery `delivered`. Anything else — 3xx (redirects are not followed), 4xx, 5xx, timeout,
-  connection failure — counts as a failed attempt and is retried per the backoff schedule in
+  delivery `delivered`. Anything else - 3xx (redirects are not followed), 4xx, 5xx, timeout,
+  connection failure - counts as a failed attempt and is retried per the backoff schedule in
   `docs/architecture.md` until the attempt cap, then parked as `dead`.
 - Original provider headers (including provider signatures) are **not** forwarded; they are stored
   on the event and visible in the dashboard. Destinations trust the relay by network position and
@@ -140,7 +140,7 @@ Contract for consumers:
 
 All routes below except login require an authenticated session; unauthenticated requests redirect
 to `/login`. All POSTs carry a CSRF token. Validation errors re-render the form with field errors;
-success redirects with a flash message. There is exactly one operator role — any authenticated
+success redirects with a flash message. There is exactly one operator role - any authenticated
 user can do everything.
 
 | Method | Path | Purpose |

@@ -25,7 +25,7 @@ sources and `example.com` destinations); reproduce with the steps under
 
 ![Delivery detail for a dead delivery to the Analytics Pipeline, showing an eight-row attempt history with HTTP 500/502/503 responses, a connection-refused error, and a request timeout](docs/images/delivery-detail.png)
 
-*Delivery detail: the full per-attempt audit trail — HTTP statuses, errors, and durations.*
+*Delivery detail: the full per-attempt audit trail - HTTP statuses, errors, and durations.*
 
 ![Dead-letter queue listing two deliveries that exhausted all eight attempts, each with a requeue action and a requeue-all button](docs/images/dead-letter-queue.png)
 
@@ -160,7 +160,7 @@ entry for `php artisan schedule:run` every minute. See `docs/launch-checklist.md
 ## Benchmark
 
 Measured with `benchmarks/delivery_throughput.php`, which delivers to a local `php -S` echo server
-(200 OK) over loopback and does the real per-delivery work — the `delivering` → attempt-row →
+(200 OK) over loopback and does the real per-delivery work - the `delivering` → attempt-row →
 `delivered` state writes plus a live Guzzle POST. No mocking.
 
 Conditions: 12th Gen Intel Core i5-1235U (12 threads), 32 GB RAM, Ubuntu 24.04, PHP 8.2.29,
@@ -169,7 +169,7 @@ SQLite database, 20-delivery warmup.
 
 | Metric | Value |
 |---|---|
-| Throughput (single worker) | ~68 deliveries/s (median of 5 warm runs; 68–70 steady-state, ~43 on a cold first run) |
+| Throughput (single worker) | ~68 deliveries/s (median of 5 warm runs; 68-70 steady-state, ~43 on a cold first run) |
 | Per-delivery wall time | ~15 ms (three committed SQLite writes + one HTTP POST) |
 | HTTP round-trip per attempt | ~1 ms p50, ~2 ms p95 |
 
@@ -218,8 +218,8 @@ rationale lives in `docs/architecture.md` and `docs/memory.md`.
   a key.
 
 - **Duplicate ingest returns `200`, not `409`.** Providers treat any non-2xx as a failure and will
-  retry the webhook, often forever. A duplicate is a success from the sender's perspective — the
-  event is already safely stored — so it returns `200` with `{"duplicate": true}` rather than a
+  retry the webhook, often forever. A duplicate is a success from the sender's perspective - the
+  event is already safely stored - so it returns `200` with `{"duplicate": true}` rather than a
   conflict status that would trigger an unwanted retry storm.
 
 - **Replay uses current routing, not a snapshot.** Replaying an event reuses the existing event row

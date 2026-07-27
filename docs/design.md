@@ -1,9 +1,9 @@
-# Design — hook-relay
+# Design - hook-relay
 
 The dashboard is a deliberately boring, server-rendered operations UI: one static stylesheet
 (`public/css/app.css`), no CSS framework, no JavaScript build, no client-side state. Every screen
 is a document: tables, forms, definition lists, and links. Density and scannability beat visual
-flair — the primary user activity is scanning tables of events and deliveries for anomalies.
+flair - the primary user activity is scanning tables of events and deliveries for anomalies.
 
 ## Color & theme
 
@@ -20,7 +20,7 @@ Light theme only in v1. Neutral grays, one accent, and a fixed status palette.
 | `--accent-hover` | `#1e40af` | Link/button hover |
 | `--danger` | `#b91c1c` | Destructive buttons, error text |
 
-Delivery status badges (background / text — all meet AA against their background; the label text
+Delivery status badges (background / text - all meet AA against their background; the label text
 always accompanies the color, never color alone):
 
 | Status | Background | Text |
@@ -34,7 +34,7 @@ always accompanies the color, never color alone):
 ## Fonts & typography scale
 
 - UI: the system font stack (`system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`). No
-  webfonts — zero requests, native rendering.
+  webfonts - zero requests, native rendering.
 - Payloads, headers, ids, URLs, response excerpts: `ui-monospace, SFMono-Regular, Menlo, Consolas,
   monospace`.
 - Scale (rem): page title 1.5 / 600; section heading 1.125 / 600; body and table cells 0.9375 /
@@ -56,30 +56,30 @@ always accompanies the color, never color alone):
 Every interactive element defines all of: default, hover, focus, disabled. Screens define error,
 loading, and empty.
 
-- **Buttons** — Primary (accent bg, white text), secondary (surface bg, border, text), danger
+- **Buttons** - Primary (accent bg, white text), secondary (surface bg, border, text), danger
   (danger bg, white text; used for delete and requeue-all). Hover darkens bg; focus shows the
   global focus ring; disabled: 50% opacity, `cursor: not-allowed`, and the `disabled` attribute.
   Destructive actions confirm via an inline confirm form, not JS `confirm()`.
-- **Links** — Accent color, underlined on hover and focus. Row-level primary actions (view event,
+- **Links** - Accent color, underlined on hover and focus. Row-level primary actions (view event,
   view delivery) are real links, so middle-click works.
-- **Forms** — Every input has a visible `<label>`; help text under the input in muted text.
+- **Forms** - Every input has a visible `<label>`; help text under the input in muted text.
   Error state: 1px danger border plus a danger-colored message under the field (never color
   alone); values are repopulated on validation failure. Secrets use `type="password"` with no
   reveal after save.
-- **Tables** — Header row in small type; zebra striping off (rules only); numeric and timestamp
+- **Tables** - Header row in small type; zebra striping off (rules only); numeric and timestamp
   columns right-aligned; monospace for ids and URLs with `text-overflow: ellipsis` and a `title`
   attribute for the full value. Wide tables scroll horizontally inside the card, never the page.
-- **Status badges** — Colored pill + text label per the table above; identical everywhere a
+- **Status badges** - Colored pill + text label per the table above; identical everywhere a
   status appears.
-- **Flash messages** — One region under the header: success (delivered-green scheme) and error
+- **Flash messages** - One region under the header: success (delivered-green scheme) and error
   (dead-red scheme), plain text, dismissed by navigation.
-- **Loading** — Pages are server-rendered, so loading states are the browser's own. Form posts
+- **Loading** - Pages are server-rendered, so loading states are the browser's own. Form posts
   that dispatch work (replay, requeue-all) return immediately with a flash like
-  "Requeued 12 deliveries" — the queue does the work; the UI never spins.
-- **Empty states** — Every index renders a one-line explanation plus the obvious next action
-  ("No sources yet. Create your first source.") — never a bare empty table. Filtered-to-empty
+  "Requeued 12 deliveries" - the queue does the work; the UI never spins.
+- **Empty states** - Every index renders a one-line explanation plus the obvious next action
+  ("No sources yet. Create your first source.") - never a bare empty table. Filtered-to-empty
   states say so and offer a "Clear filters" link.
-- **Payload viewer** — `<pre>` block, monospace, max height with vertical scroll, always
+- **Payload viewer** - `<pre>` block, monospace, max height with vertical scroll, always
   Blade-escaped (payloads are attacker-controlled; see `docs/rules.md`).
 
 ## Accessibility baseline
@@ -94,7 +94,7 @@ loading, and empty.
   `outline: none` without a replacement.
 - Contrast: all text meets WCAG AA (4.5:1; large headings 3:1); status is always conveyed by
   text plus color.
-- Flash and validation messages are plain text in the document flow, present on page load —
+- Flash and validation messages are plain text in the document flow, present on page load -
   no live-region timing issues.
 - Viewport meta set; layout readable at 320px width (tables scroll, forms stack).
 
@@ -102,4 +102,4 @@ loading, and empty.
 
 Framework 404 and 419 (expired session/CSRF) pages are replaced with minimal branded Blade pages
 using the same layout: `<h1>` naming the state, one sentence, a link back to `/`. The ingest
-endpoint never renders HTML — JSON envelope only, per `docs/api-contracts.md`.
+endpoint never renders HTML - JSON envelope only, per `docs/api-contracts.md`.
