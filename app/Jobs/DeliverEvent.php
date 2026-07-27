@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Delivery;
 use App\Support\Backoff;
+use App\Support\DeliverySigner;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -101,6 +102,9 @@ class DeliverEvent implements ShouldQueue
         $sourceName = $event->source()->withTrashed()->first()?->name ?? '';
         $contentType = $event->content_type ?: 'application/json';
 
+        $timestamp = now()->getTimestamp();
+        $signature = app(DeliverySigner::class)->sign($destination->signing_secret, $timestamp, $event->payload);
+
         $start = hrtime(true);
 
         try {
@@ -108,6 +112,8 @@ class DeliverEvent implements ShouldQueue
                 'X-Relay-Event-Id' => $event->id,
                 'X-Relay-Delivery-Id' => $delivery->id,
                 'X-Relay-Source' => $sourceName,
+                'X-Relay-Timestamp' => (string) $timestamp,
+                'X-Relay-Signature' => $signature,
                 'User-Agent' => 'hook-relay/1.0',
             ])
                 ->withBody($event->payload, $contentType)
