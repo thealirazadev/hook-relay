@@ -70,6 +70,60 @@ Log in at `/login`, create a source to get its ingest URL (`POST /ingest/{key}`)
 destination, and route the destination to the source on the source's edit screen. Point a
 provider webhook at the ingest URL, or send a signed request yourself.
 
+## Verifying forwarded deliveries
+
+Every request hook-relay forwards to a destination is signed so the consumer can prove it came from
+the relay and was not tampered with in transit. Each destination has its own signing secret,
+generated on creation and viewable (and rotatable) on its edit screen in the dashboard. Copy that
+secret into the consumer that receives the destination's deliveries.
+
+Each forwarded request carries:
+
+- `X-Relay-Timestamp` - Unix epoch seconds when the relay signed the delivery.
+- `X-Relay-Signature` - `sha256=<hex hmac_sha256(secret, "{timestamp}.{raw body}")>`.
+
+To verify, recompute the HMAC over `"{timestamp}.{raw body}"` with your copy of the secret, compare
+it to the header in constant time, and reject anything whose timestamp is outside your tolerance:
+
+```php
+function relayDeliveryIsValid(string $rawBody, string $timestamp, string $signature, string $secret, int $toleranceSeconds = 300): bool
+{
+    // Reject stale deliveries to limit the replay window.
+    if (abs(time() - (int) $timestamp) > $toleranceSeconds) {
+        return false;
+    }
+
+    $expected = 'sha256=' . hash_hmac('sha256', $timestamp . '.' . $rawBody, $secret);
+
+    // Constant-time comparison; never use == on signatures.
+    return hash_equals($expected, $signature);
+}
+```
+
+```js
+// Node.js
+const crypto = require("crypto");
+
+function relayDeliveryIsValid(rawBody, timestamp, signature, secret, toleranceSeconds = 300) {
+  if (Math.abs(Math.floor(Date.now() / 1000) - Number(timestamp)) > toleranceSeconds) return false;
+  const expected = "sha256=" + crypto.createHmac("sha256", secret).update(`${timestamp}.${rawBody}`).digest("hex");
+  const a = Buffer.from(expected), b = Buffer.from(signature);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+```
+
+Verify against the **raw request body bytes**, exactly as received, before any JSON parsing or
+re-serialization - re-encoding changes the bytes and breaks the signature. The signature covers the
+timestamp too, so a forged timestamp fails verification.
+
+### Rotating a signing secret
+
+Open the destination's edit screen and use **Rotate signing secret**. The new secret is shown once;
+copy it into the consumer immediately. Rotation takes effect on the next delivery (including
+requeues and replays), and the previous secret stops verifying at once, so rotate during a
+maintenance window or update the consumer to accept both secrets briefly if you cannot tolerate a
+gap.
+
 ## Demo data and screenshots
 
 `database/seeders/DemoSeeder.php` populates an obviously synthetic dataset (Stripe/GitHub/Shopify
