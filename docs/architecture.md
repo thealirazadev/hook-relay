@@ -318,7 +318,7 @@ session, cache, and queue).
 - **Session** — operator auth state, database-backed. The ingest route is stateless.
 - **Queue state** — `jobs` table rows plus each job's retry bookkeeping; delivery status columns
   are the authoritative view, written by the job at every transition.
-- **Secrets/config** — `.env` only, except two secret classes stored in the database and encrypted
+- **Secrets/config** - `.env` only, except two secret classes stored in the database and encrypted
   at rest with `APP_KEY` via Eloquent's `encrypted` cast: each source's inbound provider signing
   secret, and each destination's outbound delivery signing secret (v2).
 - **Nothing client-side** beyond the session cookie; no JS state, no local storage.

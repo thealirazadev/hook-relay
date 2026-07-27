@@ -222,7 +222,7 @@ and run the instance long-term (pruning, ingest throttling, polish).
 
 ---
 
-## Phase 4 — Outbound delivery signing (v2)
+## Phase 4 - Outbound delivery signing (v2)
 
 **Goal**: A downstream consumer can prove that a forwarded delivery genuinely came from this
 relay and that its body was not tampered with in transit. Each destination gets its own generated

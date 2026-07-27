@@ -109,8 +109,8 @@ on its dashboard edit screen). Every forwarded request carries:
 | `X-Relay-Timestamp` | Unix epoch seconds when the relay signed the delivery. |
 | `X-Relay-Signature` | `sha256=<lowercase hex hmac_sha256(secret, "{timestamp}.{raw body}")>`. |
 
-The signed payload is `"{X-Relay-Timestamp}.{raw request body}"` — the same construction the inbound
-Stripe verifier uses — so the timestamp is authenticated and a consumer can reject stale deliveries
+The signed payload is `"{X-Relay-Timestamp}.{raw request body}"`, the same construction the inbound
+Stripe verifier uses, so the timestamp is authenticated and a consumer can reject stale deliveries
 within a tolerance window (replay defence). Comparison must be constant-time (`hash_equals` or your
 language's equivalent). The full verification recipe is in the README. Rotating a destination's
 secret takes effect on the next delivery; requeues and replays sign with the current secret and a
