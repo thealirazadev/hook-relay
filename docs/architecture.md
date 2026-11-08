@@ -212,7 +212,7 @@ standard library; no provider SDKs.
 
 ## Data model
 
-Tables named here are the contract; the coding agent must not rename them.
+Tables named here are the contract; implementations must not rename them.
 
 ### users
 Operator accounts (created via `app:create-user`; no registration).
