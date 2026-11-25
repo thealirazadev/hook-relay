@@ -18,11 +18,11 @@ class EventController extends Controller
     public function index(Request $request): View
     {
         $filters = [
-            'source_id' => $request->query('source_id'),
-            'event_type' => $request->query('event_type'),
-            'from' => $request->query('from'),
-            'to' => $request->query('to'),
-            'q' => $request->query('q'),
+            'source_id' => $this->filterValue($request, 'source_id'),
+            'event_type' => $this->filterValue($request, 'event_type'),
+            'from' => $this->filterValue($request, 'from'),
+            'to' => $this->filterValue($request, 'to'),
+            'q' => $this->filterValue($request, 'q'),
         ];
 
         $query = WebhookEvent::query()->with('source')->latest('received_at');

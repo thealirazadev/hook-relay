@@ -146,5 +146,7 @@ proxy credentials) are stripped by `HeaderFilter` before an event is stored.
 Index filters are sanitized inline (integer casts, a date parser that returns null on bad input,
 parameter-bound search) rather than validated by a Form Request, because failed validation on a GET
 filter redirects back to the same URL and can loop. Nonsense filter values produce an empty result
-instead of an error. The event model is named `WebhookEvent` to avoid clashing with Laravel's
+instead of an error. Bug found in review: an array-valued parameter such as `?q[]=x` reached string
+handling in the query and the view and returned a 500; filters are now read only as strings and
+anything else is ignored. The event model is named `WebhookEvent` to avoid clashing with Laravel's
 `Event` facade.

@@ -57,6 +57,14 @@ it('ignores nonsense filter values without erroring', function () {
         ->assertSee('present');
 });
 
+it('ignores array-valued filter parameters without erroring', function () {
+    WebhookEvent::factory()->create(['provider_event_id' => 'present']);
+
+    $this->get('/events?source_id[]=1&event_type[]=a&from[]=b&to[]=c&q[]=d')
+        ->assertOk()
+        ->assertSee('present');
+});
+
 it('combines filters and keeps them across pagination links', function () {
     $source = Source::factory()->create();
     WebhookEvent::factory()->count(30)->for($source)->create(['event_type' => 'ping']);

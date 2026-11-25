@@ -13,9 +13,9 @@ class DeliveryController extends Controller
     public function index(Request $request): View
     {
         $filters = [
-            'status' => $request->query('status'),
-            'source_id' => $request->query('source_id'),
-            'destination_id' => $request->query('destination_id'),
+            'status' => $this->filterValue($request, 'status'),
+            'source_id' => $this->filterValue($request, 'source_id'),
+            'destination_id' => $this->filterValue($request, 'destination_id'),
         ];
 
         $query = Delivery::with(['destination', 'event.source'])->latest('updated_at');
