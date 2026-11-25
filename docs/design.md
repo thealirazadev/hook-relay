@@ -7,7 +7,7 @@ flair - the primary user activity is scanning tables of events and deliveries fo
 
 ## Color & theme
 
-Light theme only in v1. Neutral grays, one accent, and a fixed status palette.
+Light theme only. Neutral grays, one accent, and a fixed status palette.
 
 | Token | Hex | Use |
 |---|---|---|
@@ -80,7 +80,7 @@ loading, and empty.
   ("No sources yet. Create your first source.") - never a bare empty table. Filtered-to-empty
   states say so and offer a "Clear filters" link.
 - **Payload viewer** - `<pre>` block, monospace, max height with vertical scroll, always
-  Blade-escaped (payloads are attacker-controlled; see `docs/rules.md`).
+  Blade-escaped (payloads are attacker-controlled and must never execute in the dashboard).
 
 ## Accessibility baseline
 

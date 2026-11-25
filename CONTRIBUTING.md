@@ -75,7 +75,7 @@ php artisan test --filter=rejects_tampered_body
   or parameter binding for every query.
 - **No emoji** anywhere in code, comments, commits, or documentation.
 
-See [`docs/rules.md`](docs/rules.md) for the full engineering rules and
+See [`docs/decisions.md`](docs/decisions.md) for the reasoning behind the main design choices and
 [`docs/testing.md`](docs/testing.md) for the testing strategy.
 
 ## Commits and pull requests
