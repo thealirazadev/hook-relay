@@ -53,3 +53,11 @@ it('shows an explicit empty state for a filter that matches nothing', function (
 
     $this->get('/deliveries?status=dead')->assertOk()->assertSee('No deliveries match these filters');
 });
+
+it('ignores array-valued filter parameters without erroring', function () {
+    $delivery = Delivery::factory()->create();
+
+    $this->get('/deliveries?status[]=dead&source_id[]=1&destination_id[]=1')
+        ->assertOk()
+        ->assertSee('/deliveries/'.$delivery->id);
+});
