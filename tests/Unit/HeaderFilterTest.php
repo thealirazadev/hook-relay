@@ -45,3 +45,15 @@ it('accepts scalar header values', function () {
 
     expect($result['x-single'])->toBe('value');
 });
+
+it('strips response auth headers and casts null values to empty strings', function () {
+    $result = $this->filter->filter([
+        'Set-Cookie' => ['id=1'],
+        'Proxy-Authenticate' => ['Basic'],
+        'X-Empty' => [null],
+    ]);
+
+    expect($result)->not->toHaveKey('set-cookie');
+    expect($result)->not->toHaveKey('proxy-authenticate');
+    expect($result['x-empty'])->toBe('');
+});
