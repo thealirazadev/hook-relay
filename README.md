@@ -40,7 +40,13 @@ sources and `example.com` destinations); reproduce with the steps under
 - Pest (feature + unit tests) on PHPUnit
 - Laravel Pint (PSR-12 formatting)
 
-See `docs/` for the PRD, architecture, API contracts, phases, and engineering rules.
+Documentation in `docs/`:
+
+- [`architecture.md`](docs/architecture.md) - app flow, delivery state machine, data model
+- [`api-contracts.md`](docs/api-contracts.md) - ingest endpoint, envelopes, provider schemes, outbound headers
+- [`design.md`](docs/design.md) - dashboard visual and accessibility conventions
+- [`testing.md`](docs/testing.md) - test strategy, commands, and what CI runs
+- [`decisions.md`](docs/decisions.md) - design decisions and the reasons behind them
 
 ## Install
 
@@ -155,7 +161,10 @@ php artisan test              # full suite (Pest on PHPUnit)
 ## Production
 
 `php artisan migrate --force`, run `php artisan queue:work` under a supervisor, and add a cron
-entry for `php artisan schedule:run` every minute. See `docs/launch-checklist.md`.
+entry for `php artisan schedule:run` every minute. Set `APP_DEBUG=false`, serve ingest URLs over
+HTTPS, and run `php artisan queue:restart` on deploy so workers pick up new code. Back up `APP_KEY`:
+it encrypts the stored source and destination signing secrets, so rotating or losing it makes them
+unreadable.
 
 ## Benchmark
 
@@ -196,7 +205,7 @@ echo server, both cleaned up on exit, and never touches your dev data.
 ## Design decisions
 
 The trade-offs that shaped hook-relay, and the alternatives they were weighed against. Fuller
-rationale lives in `docs/architecture.md` and `docs/memory.md`.
+rationale lives in [`docs/decisions.md`](docs/decisions.md) and `docs/architecture.md`.
 
 - **At-least-once delivery, not exactly-once.** A delivery is retried until a `2xx` is observed or
   the attempt cap is hit. A crash between a successful POST and recording the result causes a

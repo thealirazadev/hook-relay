@@ -83,7 +83,7 @@ Implemented with the framework's job retry mechanics: `tries` = `DELIVERY_MAX_AT
 a brand-new job with a fresh budget; `deliveries.attempt_count` keeps the lifetime total and
 attempt rows are never deleted, so the audit trail survives requeues.
 
-## Proposed folder / file tree
+## Folder / file tree
 
 ```
 app/
@@ -125,7 +125,7 @@ app/
     │   ├── GenericProvider.php            # X-Signature: sha256=<hex>
     │   └── ProviderResolver.php           # provider enum -> instance
     ├── Backoff.php                        # delay-with-jitter calculation
-    ├── DeliverySigner.php                 # HMAC over ts.body for outbound signature headers (v2)
+    ├── DeliverySigner.php                 # HMAC over ts.body for outbound signature headers
     └── HeaderFilter.php                   # strips denylisted headers before storage
 
 config/
@@ -141,7 +141,7 @@ database/
 │   ├── 2026_07_01_000300_create_destinations_table.php
 │   ├── 2026_07_01_000400_create_source_destination_table.php
 │   ├── 2026_07_01_000500_create_deliveries_and_attempts_tables.php
-│   └── 2026_07_27_000100_add_signing_secret_to_destinations_table.php  # v2 outbound signing
+│   └── 2026_07_27_000100_add_signing_secret_to_destinations_table.php  # outbound signing
 ├── factories/                             # User, Source, Destination, WebhookEvent,
 │   └── ...                                # Delivery, DeliveryAttempt
 └── seeders/DatabaseSeeder.php
@@ -249,7 +249,7 @@ Relationships: `hasMany(WebhookEvent)`, `belongsToMany(Destination)`.
 
 Relationships: `belongsToMany(Source)`, `hasMany(Delivery)`.
 
-Added in v2 (Phase 4): each destination gets its own generated signing secret. Every forwarded
+Each destination has its own generated signing secret. Every forwarded
 delivery carries `X-Relay-Timestamp` and `X-Relay-Signature`
 (`sha256=<hex hmac_sha256(secret, "{timestamp}.{body}")>`) so consumers can verify origin and
 integrity. See `docs/api-contracts.md` for the header contract and the README for the verification
@@ -320,7 +320,7 @@ session, cache, and queue).
   are the authoritative view, written by the job at every transition.
 - **Secrets/config** - `.env` only, except two secret classes stored in the database and encrypted
   at rest with `APP_KEY` via Eloquent's `encrypted` cast: each source's inbound provider signing
-  secret, and each destination's outbound delivery signing secret (v2).
+  secret, and each destination's outbound delivery signing secret.
 - **Nothing client-side** beyond the session cookie; no JS state, no local storage.
 
 ## Retention pruning

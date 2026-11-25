@@ -2,9 +2,9 @@
 
 ## Strategy
 
-- **Automated first, manual second.** Every feature ships with automated tests in the same
-  commit series; the manual checklists in `docs/phases.md` cover what automation can't observe
-  well (a real worker process, a real echo destination, browser keyboard passes).
+- **Automated first, manual second.** Every feature ships with automated tests. Manual checks
+  cover what automation can't observe well: a real worker process against a real echo
+  destination, killing the worker mid-delivery, and keyboard-only passes through the dashboard.
 - **Pest on PHPUnit.** Feature tests for HTTP and job behavior, unit tests for isolated helpers.
   Tests run against in-memory SQLite with `RefreshDatabase` (configured in `phpunit.xml`)
   regardless of the dev database; never against the development database.
@@ -90,13 +90,14 @@ php artisan queue:work       # deliveries
 php artisan schedule:work    # pruning (only needed when testing retention)
 ```
 
-## Definition of "done" for a feature
+## Continuous integration
 
-A feature is not done until all of the following pass, in order:
+`.github/workflows/ci.yml` runs on every push and pull request to `main`, on PHP 8.2 with the
+extensions listed in `CONTRIBUTING.md`. After `composer install`, it copies `.env.example` to `.env`,
+runs `php artisan key:generate`, and then runs, in order:
 
 1. `./vendor/bin/pint --test` - no style violations.
-2. `php artisan test` - full suite green, new tests included.
-3. The feature's manual checklist items in `docs/phases.md` pass.
+2. `php artisan test` - full suite green against in-memory SQLite.
 
-After creating or editing files, run build/tests and fix all errors before reporting done. One
-commit per feature, in the order listed in `docs/phases.md`.
+A change is ready when both commands pass locally, new tests are included for any changed
+behavior, and the relevant manual checks above have been run.
