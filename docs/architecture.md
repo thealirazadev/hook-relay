@@ -78,8 +78,9 @@ Downstream consumers must dedupe on `X-Relay-Event-Id` (stable across retries an
 `min(30 * 2^(n-1), 3600)` seconds, then multiplied by a uniform random factor in `[0.8, 1.2]`
 (jitter, so synchronized failures do not retry in lockstep). With the default cap of 8 attempts:
 ~30s, 1m, 2m, 4m, 8m, 16m, 32m after the first try - roughly one hour of cover, then `dead`.
-Implemented with the framework's job retry mechanics: `tries` = `DELIVERY_MAX_ATTEMPTS`,
-`backoff()` computes the delay, `failed()` marks the delivery `dead`. A manual requeue dispatches
+Implemented with the framework's job retry mechanics: `tries` = `DELIVERY_MAX_ATTEMPTS`, a failed
+attempt calls `release()` with the delay from `App\Support\Backoff`, the attempt that spends the
+budget marks the delivery `dead`, and `failed()` does the same for a job the queue gives up on. A manual requeue dispatches
 a brand-new job with a fresh budget; `deliveries.attempt_count` keeps the lifetime total and
 attempt rows are never deleted, so the audit trail survives requeues.
 
@@ -144,7 +145,7 @@ database/
 │   └── 2026_07_27_000100_add_signing_secret_to_destinations_table.php  # outbound signing
 ├── factories/                             # User, Source, Destination, WebhookEvent,
 │   └── ...                                # Delivery, DeliveryAttempt
-└── seeders/DatabaseSeeder.php
+└── seeders/{DatabaseSeeder,DemoSeeder}.php      # DemoSeeder: synthetic data for screenshots
 
 public/css/app.css                         # the only stylesheet; no Node build
 
@@ -165,20 +166,32 @@ routes/
 
 tests/
 ├── Feature/
-│   ├── AuthTest.php
+│   ├── AccessibilityTest.php              # skip link, aria-current, status badge labels
+│   ├── AuthTest.php                       # login, logout, throttling, app:create-user
 │   ├── SourceCrudTest.php
-│   ├── DestinationCrudTest.php
-│   ├── IngestTest.php                     # per-provider accept/reject, dedupe, 404/413
+│   ├── SourceRoutingTest.php              # destination checkboxes on the source edit screen
+│   ├── DestinationCrudTest.php            # includes signing secret generation and rotation
+│   ├── IngestTest.php                     # per-provider accept/reject, dedupe, 404/405/413
+│   ├── IngestThrottleTest.php             # per-key 429 envelope, keys isolated
+│   ├── DeliveryFanoutTest.php             # one pending delivery per active routed destination
 │   ├── DeliveryJobTest.php                # Http::fake success/failure/retry/dead
-│   ├── DlqRequeueTest.php
+│   ├── DeliverySigningTest.php            # outbound X-Relay-Signature, rotation
+│   ├── DeliveryIndexTest.php              # delivery filters
+│   ├── DeliveryDetailTest.php             # attempt history
+│   ├── EventBrowsingTest.php              # event filters, detail, escaping
 │   ├── ReplayTest.php
-│   ├── DashboardFilterTest.php
+│   ├── BulkReplayTest.php
+│   ├── DlqRequeueTest.php
+│   ├── DashboardTest.php
+│   ├── ErrorPageTest.php
 │   └── PruneTest.php
 └── Unit/
     ├── StripeProviderTest.php
     ├── GithubProviderTest.php
     ├── ShopifyProviderTest.php
     ├── GenericProviderTest.php
+    ├── ProviderResolverTest.php
+    ├── DeliverySignerTest.php
     ├── BackoffTest.php
     └── HeaderFilterTest.php
 ```
